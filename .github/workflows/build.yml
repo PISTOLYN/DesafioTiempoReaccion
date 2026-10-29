@@ -1,4 +1,4 @@
-name: Build x86 y x64
+name: Build e Instalador
 
 on:
   push:
@@ -8,19 +8,28 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    strategy:
-      matrix:
-        runtime: [ win-x86, win-x64 ]
     steps:
       - uses: actions/checkout@v4
+      
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Publish ${{ matrix.runtime }}
-        run: dotnet publish src/DesafioTiempoReaccion.csproj -c Release -r ${{ matrix.runtime }} --self-contained true -o publish/${{ matrix.runtime }}
-      - name: Upload artifact
+          
+      - name: Publish win-x64
+        run: dotnet publish src/DesafioTiempoReaccion.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+      
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress
+
+      - name: Build Installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\setup.iss
+      
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: DesafioTiempoReaccion-${{ matrix.runtime }}
-          path: publish/${{ matrix.runtime }}
+          name: Juego_E_Instalador
+          path: |
+            installer/Output/*.exe
+            publish/win-x64/
