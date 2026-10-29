@@ -22,6 +22,7 @@
     </Window.Resources>
 
     <Grid>
+        <!-- PANTALLA DE INICIO -->
         <Grid x:Name="PantallaInicio" Background="#020205" Panel.ZIndex="100">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <TextBlock Text="{Binding TituloDesafio}" Foreground="White" FontSize="90" TextAlignment="Center" Margin="0,0,0,40" Effect="{StaticResource NeonAzul}"/>
@@ -39,9 +40,11 @@
             </StackPanel>
         </Grid>
 
+        <!-- JUEGO PRINCIPAL -->
         <Viewbox Stretch="Uniform">
             <Grid Width="1920" Height="1080">
                 
+                <!-- TÍTULO -->
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,20,0,0">
                     <TextBlock Text="{Binding TituloDesafio}" Foreground="White" FontSize="70" FontStyle="Italic" FontWeight="Black" TextAlignment="Center">
                         <TextBlock.Effect>
@@ -50,6 +53,7 @@
                     </TextBlock>
                 </StackPanel>
 
+                <!-- PANEL ROJO -->
                 <Border Width="650" Height="850" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="40,80,0,0"
                         CornerRadius="40" BorderThickness="6" BorderBrush="#FF1A1A" Effect="{StaticResource NeonRojo}">
                     <Border.Background>
@@ -62,7 +66,7 @@
                         <StackPanel Margin="30">
                             <TextBlock Text="EQUIPO ROJO" Foreground="White" FontSize="60" HorizontalAlignment="Center" FontWeight="Black"/>
                             
-                            <Border Background="#220000" BorderBrush="#FF1A1A" BorderThickness="4" CornerRadius="15" Width="250" Margin="0,10" HorizontalAlignment="Center">
+                            <Border x:Name="MarcadorRojo" Background="#220000" BorderBrush="#FF1A1A" BorderThickness="4" CornerRadius="15" Width="250" Margin="0,10" HorizontalAlignment="Center">
                                 <TextBlock Text="{Binding PuntosRojo}" Foreground="#FF1A1A" FontSize="90" HorizontalAlignment="Center" FontWeight="Bold"/>
                             </Border>
 
@@ -87,6 +91,7 @@
                     </Grid>
                 </Border>
 
+                <!-- PANEL CENTRAL -->
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="550" Margin="0,100,0,0">
                     
                     <Grid Width="180" Height="180" Margin="0,0,0,10">
@@ -117,6 +122,7 @@
                     <TextBlock Text="{Binding MensajeEstado}" Foreground="White" FontSize="40" TextAlignment="Center" Margin="0,20" FontWeight="Bold"/>
                 </StackPanel>
 
+                <!-- PANEL AZUL -->
                 <Border Width="650" Height="850" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,80,40,0"
                         CornerRadius="40" BorderThickness="6" BorderBrush="#1A3AFF" Effect="{StaticResource NeonAzul}">
                     <Border.Background>
@@ -129,7 +135,7 @@
                         <StackPanel Margin="30">
                             <TextBlock Text="EQUIPO AZUL" Foreground="White" FontSize="60" HorizontalAlignment="Center" FontWeight="Black"/>
                             
-                            <Border Background="#000022" BorderBrush="#1A3AFF" BorderThickness="4" CornerRadius="15" Width="250" Margin="0,10" HorizontalAlignment="Center">
+                            <Border x:Name="MarcadorAzul" Background="#000022" BorderBrush="#1A3AFF" BorderThickness="4" CornerRadius="15" Width="250" Margin="0,10" HorizontalAlignment="Center">
                                 <TextBlock Text="{Binding PuntosAzul}" Foreground="#1A3AFF" FontSize="90" HorizontalAlignment="Center" FontWeight="Bold"/>
                             </Border>
 
@@ -154,6 +160,7 @@
                     </Grid>
                 </Border>
 
+                <!-- BOTONES INFERIORES -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,30">
                     <Button Content="⚙️ CONFIGURACIÓN" Height="70" Width="300" FontSize="24" Margin="10" Click="BtnConfig_Click" Background="#111" Foreground="White" BorderBrush="#39FF14" BorderThickness="2"/>
                     <Button Content="🔄 REINICIAR JUEGO" Height="70" Width="300" FontSize="24" Margin="10" Click="BtnReiniciar_Click" Background="#111" Foreground="White" BorderBrush="#FF1A1A" BorderThickness="2"/>
@@ -161,6 +168,7 @@
             </Grid>
         </Viewbox>
 
+        <!-- MENÚ DE CONFIGURACIÓN -->
         <Grid x:Name="PantallaConfig" Background="#EE020205" Panel.ZIndex="200" Visibility="Collapsed">
             <Border Background="#0A0A1A" BorderBrush="#39FF14" BorderThickness="3" CornerRadius="20" Width="800" Height="700" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel Margin="40">
