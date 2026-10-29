@@ -6,8 +6,5 @@ public enum GameState
     CuentaRegresiva,
     EsperandoSenal,
     RondaActiva,
-    Ganador,
-    FinDeRonda,
-    Pausa,
-    Configuracion
+    Ganador
 }
