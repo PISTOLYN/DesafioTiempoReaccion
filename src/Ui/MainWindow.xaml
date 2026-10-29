@@ -1,0 +1,50 @@
+<Window x:Class="DesafioTiempoReaccion.Ui.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Desafío Tiempo de Reacción" Height="1080" Width="1920"
+        WindowStartupLocation="CenterScreen"
+        Background="#050510" KeyDown="Window_KeyDown"
+        FontFamily="Segoe UI Black">
+    <Viewbox Stretch="Uniform">
+        <Grid Width="1920" Height="1080">
+            <Border VerticalAlignment="Top" Height="180" Background="#0A0A20">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="DESAFÍO" Foreground="White" FontSize="90" Margin="0,0,20,0"/>
+                    <TextBlock Text="TIEMPO DE REACCIÓN" Foreground="#FFD700" FontSize="60" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <Border Width="620" Height="780" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="40,0,0,0"
+                    BorderBrush="#FF1A1A" BorderThickness="8" CornerRadius="30" Background="#1A0000">
+                <StackPanel>
+                    <TextBlock Text="EQUIPO ROJO" Foreground="White" FontSize="50" HorizontalAlignment="Center" Margin="0,20"/>
+                    <TextBlock Text="{Binding PuntosRojo, StringFormat=PUNTOS: {0}}" Foreground="#FF1A1A" FontSize="40" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding DisplayRojo}" Foreground="#39FF14" FontSize="120" HorizontalAlignment="Center" FontFamily="Consolas"/>
+                    <Button x:Name="BtnRojo" Content="PRESIONA EL BOTÓN" Height="200" Width="400" FontSize="30"
+                            Background="#FF1A1A" Foreground="White" BorderBrush="#FF6666" BorderThickness="6"
+                            Click="BtnRojo_Click" Margin="0,20"/>
+                </StackPanel>
+            </Border>
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="500">
+                <TextBlock Text="TIEMPO DE REACCIÓN" Foreground="White" FontSize="30" HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding DisplayCentral}" Foreground="#39FF14" FontSize="100" HorizontalAlignment="Center" FontFamily="Consolas"/>
+                <TextBlock Text="{Binding MensajeEstado}" Foreground="White" FontSize="28" TextWrapping="Wrap" TextAlignment="Center" Margin="0,30"/>
+                <Button Content="INICIAR RONDA (ESPACIO)" Height="80" FontSize="24" Margin="0,30" Click="BtnIniciar_Click"/>
+                <Button Content="REINICIAR JUEGO" Height="60" FontSize="20" Click="BtnReiniciar_Click"/>
+            </StackPanel>
+
+            <Border Width="620" Height="780" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,40,0"
+                    BorderBrush="#1A3AFF" BorderThickness="8" CornerRadius="30" Background="#00001A">
+                <StackPanel>
+                    <TextBlock Text="EQUIPO AZUL" Foreground="White" FontSize="50" HorizontalAlignment="Center" Margin="0,20"/>
+                    <TextBlock Text="{Binding PuntosAzul, StringFormat=PUNTOS: {0}}" Foreground="#1A3AFF" FontSize="40" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding DisplayAzul}" Foreground="#39FF14" FontSize="120" HorizontalAlignment="Center" FontFamily="Consolas"/>
+                    <Button x:Name="BtnAzul" Content="PRESIONA EL BOTÓN" Height="200" Width="400" FontSize="30"
+                            Background="#1A3AFF" Foreground="White" BorderBrush="#66AAFF" BorderThickness="6"
+                            Click="BtnAzul_Click" Margin="0,20"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Viewbox>
+</Window>
