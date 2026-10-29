@@ -5,17 +5,17 @@ public class GameEngine
 {
     private readonly object _sync = new();
     private long _signalTimestamp;
-    private int _winnerClaimed;
+    private int _winnerClaimed; 
     private bool _signalActive;
+    private CancellationTokenSource? _timeoutCts;
 
     public GameState State { get; private set; } = GameState.Inicio;
     public int PuntosRojo { get; private set; }
     public int PuntosAzul { get; private set; }
-    public double UltimoTiempoRojoMs { get; private set; }
-    public double UltimoTiempoAzulMs { get; private set; }
-
+    
     public event Action<GameState>? StateChanged;
-    public event Action<ReactionRoundResult>? RoundFinished;
+    public event Action<Team, double>? RoundFinished;
+    public event Action? Timeout;
 
     public void StartRound()
     {
@@ -24,7 +24,22 @@ public class GameEngine
             _winnerClaimed = 0;
             _signalActive = false;
             SetState(GameState.CuentaRegresiva);
+        }
+    }
+
+    public void BeginWaitingSignal(int timeLimitMs)
+    {
+        lock (_sync)
+        {
             SetState(GameState.EsperandoSenal);
+            _timeoutCts = new CancellationTokenSource();
+            Task.Delay(timeLimitMs, _timeoutCts.Token).ContinueWith(t =>
+            {
+                if (!t.IsCanceled && State == GameState.EsperandoSenal)
+                {
+                    lock (_sync) { SetState(GameState.Inicio); Timeout?.Invoke(); }
+                }
+            });
         }
     }
 
@@ -32,6 +47,7 @@ public class GameEngine
     {
         lock (_sync)
         {
+            _timeoutCts?.Cancel();
             _signalTimestamp = Stopwatch.GetTimestamp();
             _signalActive = true;
             SetState(GameState.RondaActiva);
@@ -49,12 +65,7 @@ public class GameEngine
                 var ganador = team == Team.Rojo ? Team.Azul : Team.Rojo;
                 if (ganador == Team.Rojo) PuntosRojo++; else PuntosAzul++;
                 SetState(GameState.Ganador);
-                RoundFinished?.Invoke(new ReactionRoundResult
-                {
-                    Winner = ganador,
-                    FalseStart = true,
-                    ReactionTimeMs = 0
-                });
+                RoundFinished?.Invoke(ganador, -1);
                 return;
             }
 
@@ -64,12 +75,11 @@ public class GameEngine
             if (Interlocked.CompareExchange(ref _winnerClaimed, claim, 0) != 0) return;
 
             double ms = (now - _signalTimestamp) * 1000.0 / Stopwatch.Frequency;
-            if (team == Team.Rojo) { UltimoTiempoRojoMs = ms; PuntosRojo++; }
-            else { UltimoTiempoAzulMs = ms; PuntosAzul++; }
+            if (team == Team.Rojo) PuntosRojo++; else PuntosAzul++;
 
             _signalActive = false;
             SetState(GameState.Ganador);
-            RoundFinished?.Invoke(new ReactionRoundResult { Winner = team, ReactionTimeMs = ms });
+            RoundFinished?.Invoke(team, ms);
         }
     }
 
@@ -77,8 +87,8 @@ public class GameEngine
     {
         lock (_sync)
         {
+            _timeoutCts?.Cancel();
             PuntosRojo = PuntosAzul = 0;
-            UltimoTiempoRojoMs = UltimoTiempoAzulMs = 0;
             SetState(GameState.Inicio);
         }
     }
