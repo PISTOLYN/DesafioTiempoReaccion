@@ -22,6 +22,7 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup --no-progress
 
+      # ESTO ES LO QUE FALTABA: Le decimos que busque el instalador en la raíz
       - name: Build Installer
         run: |
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\setup.iss
