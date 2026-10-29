@@ -3,48 +3,194 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Desafío Tiempo de Reacción" Height="1080" Width="1920"
         WindowStartupLocation="CenterScreen"
-        Background="#050510" KeyDown="Window_KeyDown"
+        Background="#020205" KeyDown="Window_KeyDown" KeyUp="Window_KeyUp"
         FontFamily="Segoe UI Black">
-    <Viewbox Stretch="Uniform">
-        <Grid Width="1920" Height="1080">
-            <Border VerticalAlignment="Top" Height="180" Background="#0A0A20">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock Text="DESAFÍO" Foreground="White" FontSize="90" Margin="0,0,20,0"/>
-                    <TextBlock Text="TIEMPO DE REACCIÓN" Foreground="#FFD700" FontSize="60" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Border>
+    
+    <Window.Resources>
+        <DropShadowEffect x:Key="NeonRojo" Color="#FF1A1A" BlurRadius="40" ShadowDepth="0" Opacity="0.8"/>
+        <DropShadowEffect x:Key="NeonAzul" Color="#1A3AFF" BlurRadius="40" ShadowDepth="0" Opacity="0.8"/>
+        <DropShadowEffect x:Key="NeonVerde" Color="#39FF14" BlurRadius="20" ShadowDepth="0" Opacity="0.9"/>
 
-            <Border Width="620" Height="780" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="40,0,0,0"
-                    BorderBrush="#FF1A1A" BorderThickness="8" CornerRadius="30" Background="#1A0000">
-                <StackPanel>
-                    <TextBlock Text="EQUIPO ROJO" Foreground="White" FontSize="50" HorizontalAlignment="Center" Margin="0,20"/>
-                    <TextBlock Text="{Binding PuntosRojo, StringFormat=PUNTOS: {0}}" Foreground="#FF1A1A" FontSize="40" HorizontalAlignment="Center"/>
-                    <TextBlock Text="{Binding DisplayRojo}" Foreground="#39FF14" FontSize="120" HorizontalAlignment="Center" FontFamily="Consolas"/>
-                    <Button x:Name="BtnRojo" Content="PRESIONA EL BOTÓN" Height="200" Width="400" FontSize="30"
-                            Background="#FF1A1A" Foreground="White" BorderBrush="#FF6666" BorderThickness="6"
-                            Click="BtnRojo_Click" Margin="0,20"/>
-                </StackPanel>
-            </Border>
+        <Style x:Key="DisplayLCD" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#39FF14"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize" Value="120"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="Effect" Value="{StaticResource NeonVerde}"/>
+        </Style>
+    </Window.Resources>
 
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="500">
-                <TextBlock Text="TIEMPO DE REACCIÓN" Foreground="White" FontSize="30" HorizontalAlignment="Center"/>
-                <TextBlock Text="{Binding DisplayCentral}" Foreground="#39FF14" FontSize="100" HorizontalAlignment="Center" FontFamily="Consolas"/>
-                <TextBlock Text="{Binding MensajeEstado}" Foreground="White" FontSize="28" TextWrapping="Wrap" TextAlignment="Center" Margin="0,30"/>
-                <Button Content="INICIAR RONDA (ESPACIO)" Height="80" FontSize="24" Margin="0,30" Click="BtnIniciar_Click"/>
-                <Button Content="REINICIAR JUEGO" Height="60" FontSize="20" Click="BtnReiniciar_Click"/>
+    <Grid>
+        <Grid x:Name="PantallaInicio" Background="#020205" Panel.ZIndex="100">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="{Binding TituloDesafio}" Foreground="White" FontSize="90" TextAlignment="Center" Margin="0,0,0,40" Effect="{StaticResource NeonAzul}"/>
+                <TextBlock Text="PRESIONA ENTER PARA INICIAR" Foreground="#FFD700" FontSize="50" TextAlignment="Center">
+                    <TextBlock.Triggers>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard>
+                                <Storyboard RepeatBehavior="Forever">
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.2" Duration="0:0:0.8" AutoReverse="True"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </TextBlock.Triggers>
+                </TextBlock>
             </StackPanel>
+        </Grid>
 
-            <Border Width="620" Height="780" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,40,0"
-                    BorderBrush="#1A3AFF" BorderThickness="8" CornerRadius="30" Background="#00001A">
-                <StackPanel>
-                    <TextBlock Text="EQUIPO AZUL" Foreground="White" FontSize="50" HorizontalAlignment="Center" Margin="0,20"/>
-                    <TextBlock Text="{Binding PuntosAzul, StringFormat=PUNTOS: {0}}" Foreground="#1A3AFF" FontSize="40" HorizontalAlignment="Center"/>
-                    <TextBlock Text="{Binding DisplayAzul}" Foreground="#39FF14" FontSize="120" HorizontalAlignment="Center" FontFamily="Consolas"/>
-                    <Button x:Name="BtnAzul" Content="PRESIONA EL BOTÓN" Height="200" Width="400" FontSize="30"
-                            Background="#1A3AFF" Foreground="White" BorderBrush="#66AAFF" BorderThickness="6"
-                            Click="BtnAzul_Click" Margin="0,20"/>
+        <Viewbox Stretch="Uniform">
+            <Grid Width="1920" Height="1080">
+                
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,20,0,0">
+                    <TextBlock Text="{Binding TituloDesafio}" Foreground="White" FontSize="70" FontStyle="Italic" FontWeight="Black" TextAlignment="Center">
+                        <TextBlock.Effect>
+                            <DropShadowEffect Color="#1A3AFF" BlurRadius="30" ShadowDepth="5" Opacity="0.8"/>
+                        </TextBlock.Effect>
+                    </TextBlock>
+                </StackPanel>
+
+                <Border Width="650" Height="850" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="40,80,0,0"
+                        CornerRadius="40" BorderThickness="6" BorderBrush="#FF1A1A" Effect="{StaticResource NeonRojo}">
+                    <Border.Background>
+                        <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.8" RadiusY="0.8">
+                            <GradientStop Color="#330000" Offset="0.0"/>
+                            <GradientStop Color="#0A0000" Offset="1.0"/>
+                        </RadialGradientBrush>
+                    </Border.Background>
+                    <Grid>
+                        <StackPanel Margin="30">
+                            <TextBlock Text="EQUIPO ROJO" Foreground="White" FontSize="60" HorizontalAlignment="Center" FontWeight="Black"/>
+                            
+                            <Border Background="#220000" BorderBrush="#FF1A1A" BorderThickness="4" CornerRadius="15" Width="250" Margin="0,10" HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding PuntosRojo}" Foreground="#FF1A1A" FontSize="90" HorizontalAlignment="Center" FontWeight="Bold"/>
+                            </Border>
+
+                            <TextBlock Text="00.00" Style="{StaticResource DisplayLCD}" Margin="0,20"/>
+                            
+                            <Grid Margin="0,40,0,0">
+                                <Ellipse x:Name="BtnRojoVisual" Width="380" Height="380">
+                                    <Ellipse.Fill>
+                                        <RadialGradientBrush>
+                                            <GradientStop Color="#FF6666" Offset="0.0"/>
+                                            <GradientStop Color="#FF0000" Offset="0.7"/>
+                                            <GradientStop Color="#660000" Offset="1.0"/>
+                                        </RadialGradientBrush>
+                                    </Ellipse.Fill>
+                                    <Ellipse.Effect>
+                                        <DropShadowEffect Color="#FF1A1A" BlurRadius="50" ShadowDepth="0" Opacity="1"/>
+                                    </Ellipse.Effect>
+                                </Ellipse>
+                                <TextBlock Text="PRESIONA EL BOTÓN" Foreground="White" FontSize="35" FontWeight="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="550" Margin="0,100,0,0">
+                    
+                    <Grid Width="180" Height="180" Margin="0,0,0,10">
+                        <Ellipse Fill="#0A0A20" Stroke="#1A3AFF" StrokeThickness="6">
+                            <Ellipse.Effect>
+                                <DropShadowEffect Color="#1A3AFF" BlurRadius="20" ShadowDepth="0"/>
+                            </Ellipse.Effect>
+                        </Ellipse>
+                        <Line x:Name="Manecilla" X1="90" Y1="90" X2="90" Y2="20" Stroke="#39FF14" StrokeThickness="6" RenderTransformOrigin="0.5,1">
+                            <Line.RenderTransform>
+                                <RotateTransform x:Name="RotacionManecilla" Angle="0"/>
+                            </Line.RenderTransform>
+                        </Line>
+                        <Ellipse Fill="#39FF14" Width="20" Height="20"/>
+                    </Grid>
+
+                    <TextBlock Text="TIEMPO DE REACCIÓN" Foreground="White" FontSize="35" HorizontalAlignment="Center"/>
+                    
+                    <Border Background="#051005" BorderBrush="#39FF14" BorderThickness="4" CornerRadius="15" Margin="0,10">
+                        <TextBlock Text="{Binding DisplayCentralText}" Style="{StaticResource DisplayLCD}" FontSize="160"/>
+                    </Border>
+                    
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10">
+                        <TextBlock Text="Límite: " Foreground="Gray" FontSize="25" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TiempoLimiteSegundos, StringFormat={}{0} seg}" Foreground="#39FF14" FontSize="30" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding MensajeEstado}" Foreground="White" FontSize="40" TextAlignment="Center" Margin="0,20" FontWeight="Bold"/>
+                </StackPanel>
+
+                <Border Width="650" Height="850" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,80,40,0"
+                        CornerRadius="40" BorderThickness="6" BorderBrush="#1A3AFF" Effect="{StaticResource NeonAzul}">
+                    <Border.Background>
+                        <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.8" RadiusY="0.8">
+                            <GradientStop Color="#000033" Offset="0.0"/>
+                            <GradientStop Color="#00000A" Offset="1.0"/>
+                        </RadialGradientBrush>
+                    </Border.Background>
+                    <Grid>
+                        <StackPanel Margin="30">
+                            <TextBlock Text="EQUIPO AZUL" Foreground="White" FontSize="60" HorizontalAlignment="Center" FontWeight="Black"/>
+                            
+                            <Border Background="#000022" BorderBrush="#1A3AFF" BorderThickness="4" CornerRadius="15" Width="250" Margin="0,10" HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding PuntosAzul}" Foreground="#1A3AFF" FontSize="90" HorizontalAlignment="Center" FontWeight="Bold"/>
+                            </Border>
+
+                            <TextBlock Text="00.00" Style="{StaticResource DisplayLCD}" Margin="0,20"/>
+                            
+                            <Grid Margin="0,40,0,0">
+                                <Ellipse x:Name="BtnAzulVisual" Width="380" Height="380">
+                                    <Ellipse.Fill>
+                                        <RadialGradientBrush>
+                                            <GradientStop Color="#66AAFF" Offset="0.0"/>
+                                            <GradientStop Color="#0011FF" Offset="0.7"/>
+                                            <GradientStop Color="#000066" Offset="1.0"/>
+                                        </RadialGradientBrush>
+                                    </Ellipse.Fill>
+                                    <Ellipse.Effect>
+                                        <DropShadowEffect Color="#1A3AFF" BlurRadius="50" ShadowDepth="0" Opacity="1"/>
+                                    </Ellipse.Effect>
+                                </Ellipse>
+                                <TextBlock Text="PRESIONA EL BOTÓN" Foreground="White" FontSize="35" FontWeight="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,30">
+                    <Button Content="⚙️ CONFIGURACIÓN" Height="70" Width="300" FontSize="24" Margin="10" Click="BtnConfig_Click" Background="#111" Foreground="White" BorderBrush="#39FF14" BorderThickness="2"/>
+                    <Button Content="🔄 REINICIAR JUEGO" Height="70" Width="300" FontSize="24" Margin="10" Click="BtnReiniciar_Click" Background="#111" Foreground="White" BorderBrush="#FF1A1A" BorderThickness="2"/>
+                </StackPanel>
+            </Grid>
+        </Viewbox>
+
+        <Grid x:Name="PantallaConfig" Background="#EE020205" Panel.ZIndex="200" Visibility="Collapsed">
+            <Border Background="#0A0A1A" BorderBrush="#39FF14" BorderThickness="3" CornerRadius="20" Width="800" Height="700" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Margin="40">
+                    <TextBlock Text="CONFIGURACIÓN" Foreground="#39FF14" FontSize="50" HorizontalAlignment="Center" Margin="0,0,0,30" FontWeight="Bold"/>
+                    
+                    <TextBlock Text="Título del Desafío:" Foreground="White" FontSize="22"/>
+                    <TextBox Text="{Binding TituloDesafio, UpdateSourceTrigger=PropertyChanged}" FontSize="22" Margin="0,5,0,20" Background="#111" Foreground="White"/>
+
+                    <TextBlock Text="Mapeo de Botones Físicos:" Foreground="White" FontSize="22" Margin="0,10,0,5"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                            <TextBlock Text="Botón Rojo:" Foreground="#FF1A1A" FontSize="20"/>
+                            <TextBox Text="{Binding BotonRojo}" IsReadOnly="True" FontSize="22" TextAlignment="Center" Background="#220000" Foreground="White"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                            <TextBlock Text="Botón Azul:" Foreground="#1A3AFF" FontSize="20"/>
+                            <TextBox Text="{Binding BotonAzul}" IsReadOnly="True" FontSize="22" TextAlignment="Center" Background="#000022" Foreground="White"/>
+                        </StackPanel>
+                    </Grid>
+                    
+                    <TextBlock Text="Botón de Reinicio:" Foreground="White" FontSize="20" Margin="0,15,0,5"/>
+                    <TextBox Text="{Binding BotonReinicio}" IsReadOnly="True" FontSize="22" TextAlignment="Center" Margin="0,0,0,30" Background="#111" Foreground="White"/>
+
+                    <Button Content="CERRAR CONFIGURACIÓN" Height="70" FontSize="24" Background="#39FF14" Foreground="Black" Click="BtnCerrarConfig_Click" FontWeight="Bold"/>
                 </StackPanel>
             </Border>
         </Grid>
-    </Viewbox>
+    </Grid>
 </Window>
