@@ -15,7 +15,6 @@ public partial class MainWindow : Window
     private readonly Random _random = new();
     private double _anguloReloj = 0;
 
-    // Propiedades para el Binding
     public string TituloDesafio => _settings.TituloDesafio;
     public int PuntosRojo => _engine.PuntosRojo;
     public int PuntosAzul => _engine.PuntosAzul;
@@ -46,7 +45,6 @@ public partial class MainWindow : Window
         _engine.StateChanged += OnStateChanged;
         _engine.RoundFinished += OnRoundFinished;
 
-        // Reloj analógico decorativo
         _timerReloj = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
         _timerReloj.Tick += (_, _) =>
         {
@@ -83,7 +81,7 @@ public partial class MainWindow : Window
     {
         Dispatcher.Invoke(() =>
         {
-            if (ms == -1) // Salida en falso
+            if (ms == -1)
             {
                 MensajeEstado = $"SALIDA EN FALSO. Gana {(winner == Team.Rojo ? "ROJO" : "AZUL")}";
             }
@@ -93,7 +91,6 @@ public partial class MainWindow : Window
                 string strMs = (ms / 1000).ToString("00.00");
                 DisplayCentralText = strMs;
                 
-                // Animación de latido
                 var targetBorder = winner == Team.Rojo ? FindName("MarcadorRojo") as Border : FindName("MarcadorAzul") as Border;
                 if (targetBorder != null)
                 {
@@ -117,23 +114,21 @@ public partial class MainWindow : Window
         if (_engine.State != GameState.Inicio && _engine.State != GameState.Ganador) return;
         
         _engine.StartRound();
-        await Task.Delay(2000); // Preparación
+        await Task.Delay(2000);
         _engine.BeginWaitingSignal(_settings.TiempoLimiteSegundos * 1000);
         
-        await Task.Delay(_random.Next(2000, 5000)); // Tiempo aleatorio antes de la señal
+        await Task.Delay(_random.Next(2000, 5000));
         if (_engine.State == GameState.EsperandoSenal) _engine.ShowSignal();
     }
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
-        // Iniciar desde pantalla de inicio
         if (PantallaInicio.Visibility == Visibility.Visible && e.Key == Key.Enter)
         {
             PantallaInicio.Visibility = Visibility.Collapsed;
             return;
         }
 
-        // Controles del juego
         if (e.Key.ToString() == _settings.BotonRojo) { _engine.RegisterPress(Team.Rojo); AnimarBoton(BtnRojoVisual); }
         else if (e.Key.ToString() == _settings.BotonAzul) { _engine.RegisterPress(Team.Azul); AnimarBoton(BtnAzulVisual); }
         else if (e.Key.ToString() == _settings.BotonReinicio) { BtnReiniciar_Click(null, null); }
