@@ -1,97 +1,112 @@
 using System.Diagnostics;
 namespace DesafioTiempoReaccion.GameEngine;
 
+/// <summary>
+/// Motor del juego. Debe usarse SIEMPRE desde el hilo de la interfaz (WPF):
+/// los retrasos usan await, así que todo continúa en ese mismo hilo y no hacen
+/// falta locks ni Dispatcher.Invoke (que antes podían provocar bloqueos).
+/// </summary>
 public class GameEngine
 {
-    private readonly object _sync = new();
+    private readonly Random _random = new();
+    private CancellationTokenSource? _roundCts;
     private long _signalTimestamp;
-    private int _winnerClaimed; 
-    private bool _signalActive;
-    private CancellationTokenSource? _timeoutCts;
 
+    public GameEngine(GameSettings settings) => Settings = settings;
+
+    public GameSettings Settings { get; }
     public GameState State { get; private set; } = GameState.Inicio;
     public int PuntosRojo { get; private set; }
     public int PuntosAzul { get; private set; }
-    
+
+    /// <summary>Milisegundos transcurridos desde que apareció la señal (0 si no hay ronda activa).</summary>
+    public double ElapsedMs =>
+        State == GameState.RondaActiva ? TicksToMs(Stopwatch.GetTimestamp() - _signalTimestamp) : 0;
+
     public event Action<GameState>? StateChanged;
-    public event Action<Team, double>? RoundFinished;
-    public event Action? Timeout;
+    public event Action<ReactionRoundResult>? RoundFinished;
+    public event Action? TimedOut;
 
-    public void StartRound()
+    /// <summary>Inicia una ronda: cuenta regresiva → espera aleatoria → señal.</summary>
+    public async Task StartRoundAsync()
     {
-        lock (_sync)
+        if (State != GameState.Inicio && State != GameState.Ganador) return;
+
+        _roundCts?.Cancel();
+        var cts = _roundCts = new CancellationTokenSource();
+        var ct = cts.Token;
+
+        try
         {
-            _winnerClaimed = 0;
-            _signalActive = false;
             SetState(GameState.CuentaRegresiva);
-        }
-    }
+            await WaitAsync(Settings.CuentaRegresivaMs, ct);
 
-    public void BeginWaitingSignal(int timeLimitMs)
-    {
-        lock (_sync)
-        {
             SetState(GameState.EsperandoSenal);
-            _timeoutCts = new CancellationTokenSource();
-            Task.Delay(timeLimitMs, _timeoutCts.Token).ContinueWith(t =>
-            {
-                if (!t.IsCanceled && State == GameState.EsperandoSenal)
-                {
-                    lock (_sync) { SetState(GameState.Inicio); Timeout?.Invoke(); }
-                }
-            });
-        }
-    }
+            await WaitAsync(_random.Next(Settings.EsperaMinMs, Settings.EsperaMaxMs + 1), ct);
 
-    public void ShowSignal()
-    {
-        lock (_sync)
-        {
-            _timeoutCts?.Cancel();
             _signalTimestamp = Stopwatch.GetTimestamp();
-            _signalActive = true;
             SetState(GameState.RondaActiva);
+
+            await WaitAsync(Settings.TiempoLimiteSegundos * 1000, ct);
+
+            // Nadie presionó a tiempo
+            SetState(GameState.Inicio);
+            TimedOut?.Invoke();
+        }
+        catch (OperationCanceledException)
+        {
+            // Ronda cancelada por un ganador o por reinicio: no hacer nada.
         }
     }
 
     public void RegisterPress(Team team)
     {
-        lock (_sync)
+        switch (State)
         {
-            long now = Stopwatch.GetTimestamp();
+            case GameState.CuentaRegresiva:
+            case GameState.EsperandoSenal:
+                // Salida en falso: el punto es para el equipo contrario.
+                FinishRound(team == Team.Rojo ? Team.Azul : Team.Rojo, 0, falseStart: true);
+                break;
 
-            if (State == GameState.EsperandoSenal || State == GameState.CuentaRegresiva)
-            {
-                var ganador = team == Team.Rojo ? Team.Azul : Team.Rojo;
-                if (ganador == Team.Rojo) PuntosRojo++; else PuntosAzul++;
-                SetState(GameState.Ganador);
-                RoundFinished?.Invoke(ganador, -1);
-                return;
-            }
-
-            if (State != GameState.RondaActiva || !_signalActive) return;
-
-            int claim = team == Team.Rojo ? 1 : 2;
-            if (Interlocked.CompareExchange(ref _winnerClaimed, claim, 0) != 0) return;
-
-            double ms = (now - _signalTimestamp) * 1000.0 / Stopwatch.Frequency;
-            if (team == Team.Rojo) PuntosRojo++; else PuntosAzul++;
-
-            _signalActive = false;
-            SetState(GameState.Ganador);
-            RoundFinished?.Invoke(team, ms);
+            case GameState.RondaActiva:
+                double ms = TicksToMs(Stopwatch.GetTimestamp() - _signalTimestamp);
+                FinishRound(team, ms, falseStart: false);
+                break;
         }
+        // En Inicio / Ganador las pulsaciones se ignoran.
     }
 
     public void ResetGame()
     {
-        lock (_sync)
-        {
-            _timeoutCts?.Cancel();
-            PuntosRojo = PuntosAzul = 0;
-            SetState(GameState.Inicio);
-        }
+        _roundCts?.Cancel();
+        PuntosRojo = PuntosAzul = 0;
+        SetState(GameState.Inicio);
     }
+
+    private void FinishRound(Team winner, double ms, bool falseStart)
+    {
+        _roundCts?.Cancel();
+        if (winner == Team.Rojo) PuntosRojo++; else PuntosAzul++;
+
+        SetState(GameState.Ganador);
+        RoundFinished?.Invoke(new ReactionRoundResult
+        {
+            Winner = winner,
+            ReactionTimeMs = ms,
+            FalseStart = falseStart
+        });
+    }
+
+    // Task.Delay + comprobación extra: si el delay terminó justo antes de cancelar,
+    // la continuación ya estaba en cola y sin esto "resucitaría" una ronda ya terminada.
+    private static async Task WaitAsync(int ms, CancellationToken ct)
+    {
+        await Task.Delay(ms, ct);
+        ct.ThrowIfCancellationRequested();
+    }
+
+    private static double TicksToMs(long ticks) => ticks * 1000.0 / Stopwatch.Frequency;
 
     private void SetState(GameState s)
     {
