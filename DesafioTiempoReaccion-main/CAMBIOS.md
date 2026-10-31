@@ -20,3 +20,11 @@
 - El centro cuenta el tiempo en vivo y la caja se pone verde con "¡AHORA!" + sonido.
 - Configuración persistente (%AppData%\DesafioTiempoReaccion\settings.json) con captura real de teclas.
 - F11 pantalla completa, F1 configuración, ESPACIO inicia ronda.
+
+## Modo 2: Tiempo Objetivo (nuevo)
+- Cambia de modo con TAB o con las flechas del selector "MODO DE JUEGO".
+- ← → ajustan el objetivo de 5 en 5 min (05:00 a 95:00). ESPACIO inicia la cuenta por voz: "3, 2, 1, ¡Ahora!".
+- En "¡Ahora!" empiezan a contar Rojo y Azul. Rojo se detiene con la tecla 1, Azul con la 2 (también funcionan los botones configurados).
+- Gana quien quede más cerca del objetivo (se anuncia por voz); se muestra la diferencia de cada uno. Empate = nadie suma punto.
+- Música de fondo: F1 → "Música de fondo" → ELEGIR… (MP3). Suena en bucle durante la carrera.
+- Usa el paquete NuGet System.Speech (voz de Windows; conviene tener una voz en español instalada).

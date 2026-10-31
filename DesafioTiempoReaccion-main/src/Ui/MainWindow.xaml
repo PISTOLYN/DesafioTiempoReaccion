@@ -230,7 +230,7 @@
                     <!-- Placa inferior -->
                     <Grid Width="500" Height="66" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,694,0,0">
                         <Path Data="M 30,0 L 470,0 L 500,33 L 470,66 L 30,66 L 0,33 Z" Fill="#5A0909" Stroke="#FF3A3A" StrokeThickness="3" StrokeLineJoin="Round"/>
-                        <TextBlock Text="PRESIONA EL BOTÓN" Foreground="White" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtPlacaRojo" Text="PRESIONA EL BOTÓN" Foreground="White" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
                 </Grid>
 
@@ -335,7 +335,7 @@
                     <!-- Placa inferior -->
                     <Grid Width="500" Height="66" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,694,0,0">
                         <Path Data="M 30,0 L 470,0 L 500,33 L 470,66 L 30,66 L 0,33 Z" Fill="#09205A" Stroke="#2F7BFF" StrokeThickness="3" StrokeLineJoin="Round"/>
-                        <TextBlock Text="PRESIONA EL BOTÓN" Foreground="White" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtPlacaAzul" Text="PRESIONA EL BOTÓN" Foreground="White" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
                 </Grid>
 
@@ -346,7 +346,7 @@
                     <!-- Etiqueta + display central -->
                     <Grid Height="50" VerticalAlignment="Top">
                         <Path Data="M 24,0 L 476,0 L 500,25 L 476,50 L 24,50 L 0,25 Z" Fill="#0A2A6E" Stroke="#3C9CFF" StrokeThickness="3" StrokeLineJoin="Round"/>
-                        <TextBlock Text="TIEMPO DE REACCIÓN" Foreground="White" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtEtiquetaCentral" Text="TIEMPO DE REACCIÓN" Foreground="White" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
                     <Border Height="170" VerticalAlignment="Top" Margin="0,66,0,0" CornerRadius="16" Background="#030508"
                             BorderBrush="#3C9CFF" BorderThickness="4" Effect="{StaticResource GlowCian}">
@@ -384,9 +384,13 @@
                             <TextBlock Grid.Row="0" Text="⚙  MODO DE JUEGO" Foreground="White" FontSize="22" Margin="2,0,0,6"/>
                             <Border Grid.Row="1" CornerRadius="10" Background="#0B1B45" BorderBrush="#3C9CFF" BorderThickness="2">
                                 <Grid>
-                                    <Polygon Points="0,13 15,0 15,26" Fill="White" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0"/>
-                                    <TextBlock Text="TIEMPO DE REACCIÓN" Foreground="White" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    <Polygon Points="15,13 0,0 0,26" Fill="White" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                    <Border Width="64" HorizontalAlignment="Left" Background="Transparent" Cursor="Hand" MouseLeftButtonDown="ModoAnterior_Click" ToolTip="Cambiar modo (TAB)">
+                                        <Polygon Points="0,13 15,0 15,26" Fill="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock x:Name="TxtModo" Text="TIEMPO DE REACCIÓN" Foreground="White" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Border Width="64" HorizontalAlignment="Right" Background="Transparent" Cursor="Hand" MouseLeftButtonDown="ModoSiguiente_Click" ToolTip="Cambiar modo (TAB)">
+                                        <Polygon Points="15,13 0,0 0,26" Fill="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
                                 </Grid>
                             </Border>
                         </Grid>
@@ -398,7 +402,7 @@
                         <Button Content="↺ REINICIAR" Style="{StaticResource ChipButton}" Margin="5,0" Click="BtnReiniciar_Click" ToolTip="Tecla de reinicio"/>
                         <Button Content="⚙ CONFIG" Style="{StaticResource ChipButton}" Margin="5,0,0,0" Click="BtnConfig_Click" ToolTip="F1"/>
                     </UniformGrid>
-                    <TextBlock Text="ESPACIO iniciar · F1 config · F11 pantalla completa" Foreground="#7F93C7" FontSize="15"
+                    <TextBlock x:Name="TxtAyuda" Text="ESPACIO iniciar · TAB modo · F1 config · F11 pantalla" Foreground="#7F93C7" FontSize="15"
                                HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,2"/>
                 </Grid>
             </Grid>
@@ -407,7 +411,7 @@
         <!-- ================= CONFIGURACIÓN ================= -->
         <Grid x:Name="PantallaConfig" Background="#EE030615" Panel.ZIndex="200" Visibility="Collapsed">
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
-                <Border Width="820" Height="740" Background="#0A1233" BorderBrush="#3C9CFF" BorderThickness="3" CornerRadius="20"
+                <Border Width="820" Height="880" Background="#0A1233" BorderBrush="#3C9CFF" BorderThickness="3" CornerRadius="20"
                         Effect="{StaticResource GlowCian}">
                     <StackPanel Margin="40,28">
                         <TextBlock Text="CONFIGURACIÓN" Foreground="#B8FF3F" FontSize="44" HorizontalAlignment="Center" Margin="0,0,0,18"/>
@@ -440,6 +444,18 @@
                                 <TextBox x:Name="KeyReinicio" Style="{StaticResource CfgTextBox}" IsReadOnly="True" IsReadOnlyCaretVisible="False"
                                          TextAlignment="Center" Cursor="Hand" PreviewKeyDown="KeyBox_PreviewKeyDown"/>
                             </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="Música de fondo (MP3) del modo Tiempo Objetivo:" Foreground="White" FontSize="20" Margin="0,18,0,6"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="TxtCfgMusica" Text="(ninguna)" Foreground="#B8FF3F" FontSize="20" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                            <Button Grid.Column="1" Content="ELEGIR…" Style="{StaticResource ChipButton}" Width="130" Height="46" Margin="8,0" Click="BtnElegirMusica_Click"/>
+                            <Button Grid.Column="2" Content="QUITAR" Style="{StaticResource ChipButton}" Width="120" Height="46" Click="BtnQuitarMusica_Click"/>
                         </Grid>
 
                         <TextBlock x:Name="TxtCfgAviso" Text="" Foreground="#FFD21F" FontSize="18" Margin="0,14,0,0" TextWrapping="Wrap" MinHeight="48"/>

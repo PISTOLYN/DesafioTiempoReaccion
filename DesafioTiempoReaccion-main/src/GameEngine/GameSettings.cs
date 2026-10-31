@@ -9,6 +9,7 @@ public class GameSettings
     public string BotonRojo { get; set; } = "A";
     public string BotonAzul { get; set; } = "L";
     public string BotonReinicio { get; set; } = "R";
+    public string MusicaPath { get; set; } = "";   // MP3 de fondo (modo Tiempo Objetivo)
 
     public int CuentaRegresivaMs { get; set; } = 1500;
     public int EsperaMinMs { get; set; } = 2000;
@@ -44,6 +45,7 @@ public class GameSettings
 
     public void Normalize()
     {
+        MusicaPath ??= "";
         if (string.IsNullOrWhiteSpace(TituloDesafio)) TituloDesafio = "TIEMPO DE REACCIÓN";
         TiempoLimiteSegundos = Math.Clamp(TiempoLimiteSegundos, 3, 60);
         if (string.IsNullOrWhiteSpace(BotonRojo)) BotonRojo = "A";
