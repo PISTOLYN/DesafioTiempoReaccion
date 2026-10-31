@@ -15,7 +15,7 @@ namespace DesafioTiempoReaccion;
 
 public partial class MainWindow : Window
 {
-    enum St { Idle, Wait, Go }
+    enum St { Idle, Wait, Go, Finished }
 
     static readonly string[] Names = { "ROJO", "AZUL" };
     static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     readonly Stopwatch sw = new();
     readonly DispatcherTimer tick = new() { Interval = TimeSpan.FromMilliseconds(10) };
     readonly DispatcherTimer waitT = new();
+    readonly DispatcherTimer clockTick = new() { Interval = TimeSpan.FromMilliseconds(30) }; // Para la manecilla
     readonly Random rnd = new();
     readonly List<MediaPlayer> players = new();
     readonly TextBlock[] disp, status, scoreTb;
@@ -39,6 +40,9 @@ public partial class MainWindow : Window
     string capturing;
     string page = "main";
 
+    // Tiempo Objetivo (Modificable con flechas)
+    double targetTime = 10.00;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -49,6 +53,7 @@ public partial class MainWindow : Window
 
         tick.Tick += OnTick;
         waitT.Tick += OnWaitDone;
+        clockTick.Tick += ClockTick_Tick;
 
         try
         {
@@ -147,14 +152,15 @@ public partial class MainWindow : Window
     // ---------- Lógica de juego ----------
     void Reset(bool clearScores)
     {
-        tick.Stop(); waitT.Stop(); sw.Reset();
+        tick.Stop(); waitT.Stop(); clockTick.Stop(); sw.Reset();
         st = St.Idle;
         t[0] = t[1] = null; cnt[0] = cnt[1] = 0;
         for (int i = 0; i < 2; i++) { disp[i].Text = Zero(); status[i].Text = cfg.TxtBoton; }
-        DispCentro.Text = "10.00";
+        DispCentro.Text = Fmt(targetTime);
         CenterBox.Background = BoxNormal;
         MsgCentro.Text = cfg.ModeHelp[cfg.Mode] + "\n\n" + cfg.TxtListo;
         if (clearScores) { score[0] = score[1] = 0; UpdScores(); }
+        HandRotation.Angle = 0;
     }
 
     void StartRound()
@@ -162,99 +168,138 @@ public partial class MainWindow : Window
         if (st != St.Idle) return;
         Reset(false);
         Play("inicio");
-        if (cfg.Mode == 0)
+        st = St.Wait;
+        MsgCentro.Text = "ESPERA LA SEÑAL...";
+        Speak("3");
+        
+        // Conteo regresivo simple
+        var countdown = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        int count = 2;
+        countdown.Tick += (s, e) =>
         {
-            st = St.Wait;
-            MsgCentro.Text = cfg.TxtEspera;
-            Speak(cfg.TxtPrepara);
-            waitT.Interval = TimeSpan.FromMilliseconds(rnd.Next(2000, 5500));
-            waitT.Start();
-        }
-        else
+            if (count > 0)
+            {
+                Speak(count.ToString());
+                count--;
+            }
+            else if (count == 0)
+            {
+                Speak("Ahora");
+                countdown.Stop();
+                st = St.Go;
+                MsgCentro.Text = cfg.TxtYa;
+                CenterBox.Background = BoxGo;
+                Play("senal");
+                sw.Restart(); tick.Start(); clockTick.Start();
+            }
+        };
+        countdown.Start();
+    }
+
+    // Animación de la manecilla
+    void ClockTick_Tick(object s, EventArgs e)
+    {
+        if (st == St.Go)
         {
-            st = St.Go;
-            MsgCentro.Text = cfg.Mode == 1 ? "¡DETÉN EL TIEMPO!" : "¡PRESIONA SIN PARAR!";
-            Play("senal");
-            sw.Restart(); tick.Start();
+            HandRotation.Angle = (HandRotation.Angle + 10) % 360;
         }
     }
 
     void OnWaitDone(object s, EventArgs e)
     {
-        waitT.Stop();
-        if (st != St.Wait) return;
-        st = St.Go;
-        MsgCentro.Text = cfg.TxtYa;
-        CenterBox.Background = BoxGo;
-        Play("senal");
-        sw.Restart(); tick.Start();
+        // Ya no se usa este método para el conteo, pero lo dejamos por compatibilidad
     }
 
     void OnTick(object s, EventArgs e)
     {
         double el = sw.Elapsed.TotalSeconds;
+        
+        // Muestra el tiempo transcurrido en el centro
+        DispCentro.Text = Fmt(el);
+
+        // Modo 0: Tiempo de reacción clásico (el primero que presiona gana)
         if (cfg.Mode == 0)
         {
-            DispCentro.Text = Fmt(el);
             if (el >= 10) Finish(-1, cfg.TxtNadie);
             return;
         }
-        double rem = 10 - el;
-        if (rem <= 0)
+
+        // Modo 1: Detener el tiempo exacto
+        if (cfg.Mode == 1)
         {
-            DispCentro.Text = "00.00";
-            if (cfg.Mode == 1) Resolve1(); else Resolve2();
+            if (el >= 99.99) { Resolve1(); } // Límite de seguridad
         }
-        else DispCentro.Text = Fmt(rem);
+        
+        // Modo 2: Contar clics
+        if (cfg.Mode == 2)
+        {
+             if (el >= 10) { Resolve2(); }
+        }
     }
 
     void Press(int team)
     {
         if (st == St.Idle) return;
 
+        // Modo 0: Reacción rápida
         if (cfg.Mode == 0)
         {
-            if (st == St.Wait)
+            if (st == St.Wait) // Presionó antes de tiempo
             {
-                waitT.Stop();
                 CenterBox.Background = BoxFalse;
-                Finish(1 - team, string.Format(cfg.TxtFalso, Names[1 - team]));
+                Finish(1 - team, $"¡FALSO! {Names[1 - team]} GANA");
             }
-            else
+            else if (st == St.Go) // Presionó a tiempo
             {
                 double el = sw.Elapsed.TotalSeconds;
                 disp[team].Text = Fmt(el);
                 Finish(team, string.Format(cfg.TxtGana, Names[team]));
             }
         }
+        // Modo 1: Detener el tiempo exacto
         else if (cfg.Mode == 1)
         {
-            if (t[team] != null) return;
-            double rem = Math.Max(0, 10 - sw.Elapsed.TotalSeconds);
-            t[team] = rem;
-            disp[team].Text = Fmt(rem);
+            if (st != St.Go || t[team] != null) return;
+            
+            double el = sw.Elapsed.TotalSeconds;
+            t[team] = el;
+            disp[team].Text = Fmt(el);
+            
             if (t[0] != null && t[1] != null) Resolve1();
         }
-        else
+        // Modo 2: Contar clics
+        else if (cfg.Mode == 2)
         {
+            if (st != St.Go) return;
             cnt[team]++;
             disp[team].Text = cnt[team].ToString("0000");
         }
     }
 
+    // Regla estricta para Modo 1 (Solo gana si es exacto)
     void Resolve1()
     {
-        if (t[0] == null && t[1] == null) { Finish(-1, cfg.TxtNadie); return; }
-        int w;
-        if (t[0] == null) w = 1;
-        else if (t[1] == null) w = 0;
-        else if (Math.Abs(t[0].Value - t[1].Value) < 0.005) { Finish(-1, cfg.TxtEmpate); return; }
-        else w = t[0] < t[1] ? 0 : 1;
-        Finish(w, string.Format(cfg.TxtGana, Names[w]));
+        tick.Stop(); clockTick.Stop();
+        st = St.Finished;
+        
+        if (t[0] == null && t[1] == null) { Finish(-1, "NADIE PRESIONÓ"); return; }
+        
+        // Margen de error: 0.01 segundos (10 ms)
+        double margin = 0.01;
+        
+        bool redExact = t[0].HasValue && Math.Abs(t[0].Value - targetTime) <= margin;
+        bool blueExact = t[1].HasValue && Math.Abs(t[1].Value - targetTime) <= margin;
+
+        if (redExact && blueExact) Finish(-1, "¡EMPATE EXACTO!");
+        else if (redExact) Finish(0, "¡GANÓ ROJO! TIEMPO EXACTO");
+        else if (blueExact) Finish(1, "¡GANÓ AZUL! TIEMPO EXACTO");
+        else Finish(-1, "NADIE ACERTÓ EL TIEMPO EXACTO");
     }
 
     void Resolve2()
     {
+        tick.Stop(); clockTick.Stop();
+        st = St.Finished;
         if (cnt[0] == cnt[1]) { Finish(-1, cfg.TxtEmpate); return; }
         int w = cnt[0] > cnt[1] ? 0 : 1;
         Finish(w, string.Format(cfg.TxtGana, Names[w]));
@@ -263,7 +308,8 @@ public partial class MainWindow : Window
     void Finish(int winner, string msg)
     {
         st = St.Idle;
-        tick.Stop(); waitT.Stop(); sw.Stop();
+        tick.Stop(); waitT.Stop(); clockTick.Stop(); sw.Stop();
+        
         if (winner >= 0)
         {
             score[winner]++; UpdScores();
@@ -271,6 +317,7 @@ public partial class MainWindow : Window
             Play("ganador");
         }
         else Play("error");
+        
         MsgCentro.Text = msg;
         Speak(msg);
     }
@@ -297,6 +344,13 @@ public partial class MainWindow : Window
             BuildMenu();
             e.Handled = true;
             return;
+        }
+
+        // Cambiar Tiempo Objetivo con Flechas (Solo en Idle)
+        if (st == St.Idle)
+        {
+            if (k == Key.Right) { targetTime += 5.00; if (targetTime > 99.00) targetTime = 99.00; DispCentro.Text = Fmt(targetTime); e.Handled = true; return; }
+            if (k == Key.Left) { targetTime -= 5.00; if (targetTime < 5.00) targetTime = 5.00; DispCentro.Text = Fmt(targetTime); e.Handled = true; return; }
         }
 
         if (k == K("Menu")) { ToggleMenu(); e.Handled = true; return; }
