@@ -381,7 +381,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="⚙  MODO DE JUEGO" Foreground="White" FontSize="22" Margin="2,0,0,6"/>
+                            <TextBlock x:Name="TxtModoTitulo" Grid.Row="0" Text="⚙  MODO DE JUEGO" Foreground="White" FontSize="22" Margin="2,0,0,6"/>
                             <Border Grid.Row="1" CornerRadius="10" Background="#0B1B45" BorderBrush="#3C9CFF" BorderThickness="2">
                                 <Grid>
                                     <Border Width="64" HorizontalAlignment="Left" Background="Transparent" Cursor="Hand" MouseLeftButtonDown="ModoAnterior_Click" ToolTip="Cambiar modo (TAB)">
@@ -413,6 +413,7 @@
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
                 <Border Width="820" Height="880" Background="#0A1233" BorderBrush="#3C9CFF" BorderThickness="3" CornerRadius="20"
                         Effect="{StaticResource GlowCian}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="40,28">
                         <TextBlock Text="CONFIGURACIÓN" Foreground="#B8FF3F" FontSize="44" HorizontalAlignment="Center" Margin="0,0,0,18"/>
 
@@ -458,11 +459,17 @@
                             <Button Grid.Column="2" Content="QUITAR" Style="{StaticResource ChipButton}" Width="120" Height="46" Click="BtnQuitarMusica_Click"/>
                         </Grid>
 
+                        <CheckBox x:Name="ChkVoz" Content="Usar voz en la cuenta regresiva y para anunciar al ganador" Foreground="White" FontSize="20" Margin="0,18,0,0" Focusable="False"/>
+
+                        <TextBlock Text="Efectos de sonido (por defecto o tus propios MP3):" Foreground="White" FontSize="20" Margin="0,18,0,8"/>
+                        <StackPanel x:Name="PanelSonidos"/>
+
                         <TextBlock x:Name="TxtCfgAviso" Text="" Foreground="#FFD21F" FontSize="18" Margin="0,14,0,0" TextWrapping="Wrap" MinHeight="48"/>
 
                         <Button Content="GUARDAR Y CERRAR" Style="{StaticResource ChipButton}" Height="64" FontSize="24" Margin="0,16,0,0"
                                 Background="#1E64FF" Click="BtnCerrarConfig_Click"/>
                     </StackPanel>
+                    </ScrollViewer>
                 </Border>
             </Viewbox>
         </Grid>

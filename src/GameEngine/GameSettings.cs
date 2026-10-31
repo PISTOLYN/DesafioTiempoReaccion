@@ -9,6 +9,11 @@ public class GameSettings
     public string BotonRojo { get; set; } = "A";
     public string BotonAzul { get; set; } = "L";
     public string BotonReinicio { get; set; } = "R";
+    public bool UsarVoz { get; set; } = true;
+    public string SonidoCuenta { get; set; } = "";    // vacío = sonido por defecto
+    public string SonidoAhora { get; set; } = "";
+    public string SonidoDetener { get; set; } = "";
+    public string SonidoGanador { get; set; } = "";
     public string MusicaPath { get; set; } = "";   // MP3 de fondo (modo Tiempo Objetivo)
 
     public int CuentaRegresivaMs { get; set; } = 1500;
@@ -45,7 +50,7 @@ public class GameSettings
 
     public void Normalize()
     {
-        MusicaPath ??= "";
+        MusicaPath ??= ""; SonidoCuenta ??= ""; SonidoAhora ??= ""; SonidoDetener ??= ""; SonidoGanador ??= "";
         if (string.IsNullOrWhiteSpace(TituloDesafio)) TituloDesafio = "TIEMPO DE REACCIÓN";
         TiempoLimiteSegundos = Math.Clamp(TiempoLimiteSegundos, 3, 60);
         if (string.IsNullOrWhiteSpace(BotonRojo)) BotonRojo = "A";

@@ -30,7 +30,14 @@ public partial class MainWindow : Window
     private readonly Voz _voz = new();
     private readonly Musica _musica = new();
     private readonly DispatcherTimer _timer;
-    private Modo _modo = Modo.Reaccion;
+    private readonly Efectos _efectos = new();
+    private Modo _modo = Modo.TiempoObjetivo;
+    private readonly Dictionary<string, string> _cfgSonidos = new();
+    private readonly Dictionary<string, TextBlock> _cfgSonidoTxt = new();
+    private static readonly (string Slot, string Nombre)[] Slots =
+    {
+        ("cuenta", "Cuenta 3-2-1"), ("ahora", "¡Ahora!"), ("detener", "Al detener"), ("ganador", "Ganador")
+    };
     private string _cfgMusica = "";
     private bool _fullscreen;
 
@@ -79,7 +86,7 @@ public partial class MainWindow : Window
                 break;
             case GameState.RondaActiva:
                 SetBanner("¡AHORA!", "¡PRESIONA YA!", ColVerde, 88, 0xCC);
-                System.Media.SystemSounds.Exclamation.Play();
+                _efectos.Reproducir("ahora", _settings.SonidoAhora);
                 break;
         }
     }
@@ -108,6 +115,7 @@ public partial class MainWindow : Window
                       $"{r.ReactionTimeMs:F0} ms\nESPACIO para otra ronda", color, 38, 0x88);
         }
 
+        _efectos.Reproducir("ganador", _settings.SonidoGanador);
         PulsarMarcador(r.Winner);
     }
 
@@ -137,11 +145,13 @@ public partial class MainWindow : Window
         if (n > 0)
         {
             SetBanner(n.ToString(CultureInfo.InvariantCulture), "", ColOro, 100);
-            _voz.Decir(n.ToString(CultureInfo.InvariantCulture));
+            if (_settings.UsarVoz) _voz.Decir(n.ToString(CultureInfo.InvariantCulture));
+            else _efectos.Reproducir("cuenta", _settings.SonidoCuenta);
         }
         else
         {
-            _voz.Decir("¡Ahora!");
+            if (_settings.UsarVoz) _voz.Decir("¡Ahora!");
+            _efectos.Reproducir("ahora", _settings.SonidoAhora);
         }
     }
 
@@ -149,6 +159,7 @@ public partial class MainWindow : Window
     {
         (team == Team.Rojo ? DispRojo : DispAzul).Text = FormatTime(ms);
         (team == Team.Rojo ? TxtPlacaRojo : TxtPlacaAzul).Text = "¡DETENIDO!";
+        _efectos.Reproducir("detener", _settings.SonidoDetener);
     }
 
     private void OnTargetFinished(TargetTimeResult r)
@@ -162,13 +173,32 @@ public partial class MainWindow : Window
         else if (r.Winner == Team.Azul) { msg = "¡Ganó el Equipo Azul!"; SetBanner(msg.ToUpperInvariant(), diffs, ColAzul, 38, 0x88); }
         else { msg = "¡Empate!"; SetBanner("¡EMPATE!", diffs, ColOro, 46, 0x88); }
 
-        _voz.Decir(msg);
+        if (_settings.UsarVoz) _voz.Decir(msg);
+        _efectos.Reproducir("ganador", _settings.SonidoGanador);
         if (r.Winner != null) PulsarMarcador(r.Winner.Value);
     }
 
     private void OnTargetChanged()
     {
         DispCentral.Text = FormatTarget();
+        ActualizarSelector();
+    }
+
+    /// <summary>La caja de abajo (◀ ▶) muestra el objetivo y lo cambia de 5 en 5 min.</summary>
+    private void ActualizarSelector()
+    {
+        if (_modo == Modo.TiempoObjetivo)
+        {
+            TxtModoTitulo.Text = "⚙  AJUSTAR TIEMPO OBJETIVO";
+            TxtModo.Text = FormatTarget();
+            TxtModo.FontSize = 30;
+        }
+        else
+        {
+            TxtModoTitulo.Text = "⚙  MODO DE JUEGO";
+            TxtModo.Text = "TIEMPO DE REACCIÓN";
+            TxtModo.FontSize = 22;
+        }
     }
 
     private static string Diff(double ms, double objetivoMs) =>
@@ -237,10 +267,10 @@ public partial class MainWindow : Window
     private void AplicarModo()
     {
         bool t = _modo == Modo.TiempoObjetivo;
-        TxtModo.Text = t ? "TIEMPO OBJETIVO" : "TIEMPO DE REACCIÓN";
-        TxtEtiquetaCentral.Text = TxtModo.Text;
+        TxtEtiquetaCentral.Text = t ? "TIEMPO OBJETIVO" : "TIEMPO DE REACCIÓN";
+        ActualizarSelector();
         TxtAyuda.Text = t
-            ? "← → objetivo · ESPACIO iniciar · 1 / 2 detener · TAB modo"
+            ? "◀ ▶ objetivo · ESPACIO iniciar · 1 / 2 detener · F1 config"
             : "ESPACIO iniciar · TAB modo · F1 config · F11 pantalla";
         AplicarConfiguracion();
         ResetDisplays();
@@ -252,7 +282,7 @@ public partial class MainWindow : Window
         if (_modo == Modo.Reaccion)
             SetBanner("ESPERA LA SEÑAL Y PRESIONA EL BOTÓN LO MÁS RÁPIDO POSIBLE", "Pulsa ESPACIO para comenzar", ColCian, 28);
         else
-            SetBanner("AJUSTA EL TIEMPO OBJETIVO CON ← →", "Pulsa ESPACIO para comenzar", ColCian, 30);
+            SetBanner("AJUSTA EL TIEMPO OBJETIVO CON ◀ ▶", "Pulsa ESPACIO para comenzar", ColCian, 30);
     }
 
     private void ResetDisplays()
@@ -452,8 +482,16 @@ public partial class MainWindow : Window
     private void BtnReiniciar_Click(object sender, RoutedEventArgs e) => Reiniciar();
     private void BtnConfig_Click(object sender, RoutedEventArgs e) => AbrirConfig();
     private void BtnCerrarConfig_Click(object sender, RoutedEventArgs e) => CerrarConfig();
-    private void ModoAnterior_Click(object sender, MouseButtonEventArgs e) => CambiarModo();
-    private void ModoSiguiente_Click(object sender, MouseButtonEventArgs e) => CambiarModo();
+    // En el modo Tiempo Objetivo las flechas cambian el objetivo; en el otro modo vuelven al Tiempo Objetivo.
+    private void ModoAnterior_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (_modo == Modo.TiempoObjetivo) _target.AdjustTarget(-1); else CambiarModo();
+    }
+
+    private void ModoSiguiente_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (_modo == Modo.TiempoObjetivo) _target.AdjustTarget(1); else CambiarModo();
+    }
 
     private void PantallaInicio_MouseDown(object sender, MouseButtonEventArgs e) =>
         PantallaInicio.Visibility = Visibility.Collapsed;
@@ -470,6 +508,8 @@ public partial class MainWindow : Window
         KeyReinicio.Text = _settings.BotonReinicio;
         _cfgMusica = _settings.MusicaPath;
         MostrarMusicaCfg();
+        ChkVoz.IsChecked = _settings.UsarVoz;
+        ConstruirFilasSonidos();
         TxtCfgAviso.Text = "";
         PantallaConfig.Visibility = Visibility.Visible;
     }
@@ -489,12 +529,101 @@ public partial class MainWindow : Window
         _settings.BotonAzul = KeyAzul.Text;
         _settings.BotonReinicio = KeyReinicio.Text;
         _settings.MusicaPath = _cfgMusica;
+        _settings.UsarVoz = ChkVoz.IsChecked == true;
+        foreach (var (slot, _) in Slots) SetSonido(slot, _cfgSonidos.GetValueOrDefault(slot, ""));
         _settings.Normalize();
         _settings.Save();
 
         AplicarConfiguracion();
         PantallaConfig.Visibility = Visibility.Collapsed;
         Focus();
+    }
+
+    private string GetSonido(string slot) => slot switch
+    {
+        "cuenta" => _settings.SonidoCuenta,
+        "ahora" => _settings.SonidoAhora,
+        "detener" => _settings.SonidoDetener,
+        _ => _settings.SonidoGanador
+    };
+
+    private void SetSonido(string slot, string valor)
+    {
+        switch (slot)
+        {
+            case "cuenta": _settings.SonidoCuenta = valor; break;
+            case "ahora": _settings.SonidoAhora = valor; break;
+            case "detener": _settings.SonidoDetener = valor; break;
+            default: _settings.SonidoGanador = valor; break;
+        }
+    }
+
+    private void ConstruirFilasSonidos()
+    {
+        PanelSonidos.Children.Clear();
+        _cfgSonidoTxt.Clear();
+        var estiloBtn = (Style)FindResource("ChipButton");
+
+        foreach (var (slot, nombre) in Slots)
+        {
+            _cfgSonidos[slot] = GetSonido(slot);
+
+            var fila = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+            fila.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(170) });
+            fila.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            fila.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            fila.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            fila.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var lbl = new TextBlock { Text = nombre, Foreground = Brushes.White, FontSize = 18, VerticalAlignment = VerticalAlignment.Center };
+            var arch = new TextBlock
+            {
+                FontSize = 15,
+                Foreground = new SolidColorBrush(Color.FromRgb(0xB8, 0xFF, 0x3F)),
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            _cfgSonidoTxt[slot] = arch;
+            ActualizarTextoSonido(slot);
+
+            Button Boton(string txt, int col, double ancho, RoutedEventHandler h)
+            {
+                var b = new Button { Content = txt, Style = estiloBtn, Width = ancho, Height = 40, FontSize = 14, Margin = new Thickness(4, 0, 0, 0) };
+                Grid.SetColumn(b, col);
+                b.Click += h;
+                return b;
+            }
+
+            Grid.SetColumn(lbl, 0);
+            Grid.SetColumn(arch, 1);
+            fila.Children.Add(lbl);
+            fila.Children.Add(arch);
+            fila.Children.Add(Boton("▶", 2, 46, (_, _) => _efectos.Reproducir(slot, _cfgSonidos[slot])));
+            fila.Children.Add(Boton("ELEGIR…", 3, 100, (_, _) => ElegirSonido(slot)));
+            fila.Children.Add(Boton("DEFECTO", 4, 100, (_, _) => { _cfgSonidos[slot] = ""; ActualizarTextoSonido(slot); }));
+            PanelSonidos.Children.Add(fila);
+        }
+    }
+
+    private void ActualizarTextoSonido(string slot)
+    {
+        string v = _cfgSonidos.GetValueOrDefault(slot, "");
+        _cfgSonidoTxt[slot].Text = string.IsNullOrWhiteSpace(v) ? "(por defecto)" : System.IO.Path.GetFileName(v);
+    }
+
+    private void ElegirSonido(string slot)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Elegir sonido (MP3 o WAV)",
+            Filter = "Audio (*.mp3;*.wav;*.wma;*.m4a)|*.mp3;*.wav;*.wma;*.m4a|Todos los archivos|*.*"
+        };
+        if (dlg.ShowDialog(this) == true)
+        {
+            _cfgSonidos[slot] = dlg.FileName;
+            ActualizarTextoSonido(slot);
+        }
     }
 
     private void BtnElegirMusica_Click(object sender, RoutedEventArgs e)
