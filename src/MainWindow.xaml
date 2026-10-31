@@ -150,11 +150,22 @@
         <Border Canvas.Left="590" Canvas.Top="370" Width="380" Height="140" CornerRadius="12" Background="#050505" BorderBrush="#2E8CFF" BorderThickness="4">
           <TextBlock x:Name="DispCentro" Text="10.00" Style="{StaticResource Lcd}" FontSize="100"/>
         </Border>
-        <Border x:Name="CenterBox" Canvas.Left="590" Canvas.Top="530" Width="380" Height="270" CornerRadius="12"
+        
+        <!-- RELOJ CON MANECILLA GIRATORIA (NUEVO) -->
+        <Grid x:Name="ClockGrid" Canvas.Left="690" Canvas.Top="520" Width="180" Height="180">
+            <Ellipse Stroke="#2E8CFF" StrokeThickness="4" Fill="#081538"/>
+            <Line x:Name="ClockHand" X1="90" Y1="90" X2="90" Y2="20" Stroke="#7CFF2A" StrokeThickness="5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" RenderTransformOrigin="0.5,0.5">
+                <Line.RenderTransform>
+                    <RotateTransform x:Name="HandRotation" Angle="0"/>
+                </Line.RenderTransform>
+            </Line>
+            <Ellipse Width="16" Height="16" Fill="#7CFF2A"/>
+        </Grid>
+
+        <Border x:Name="CenterBox" Canvas.Left="590" Canvas.Top="720" Width="380" Height="80" CornerRadius="12"
                 Background="#06143A" BorderBrush="#2E8CFF" BorderThickness="3">
           <StackPanel VerticalAlignment="Center">
-            <TextBlock Text="⏱" FontSize="64" Foreground="White" HorizontalAlignment="Center"/>
-            <TextBlock x:Name="MsgCentro" Text="" Style="{StaticResource Lbl}" FontSize="30" TextWrapping="Wrap" Margin="12,0"/>
+            <TextBlock x:Name="MsgCentro" Text="" Style="{StaticResource Lbl}" FontSize="24" TextWrapping="Wrap" Margin="12,0"/>
           </StackPanel>
         </Border>
 
