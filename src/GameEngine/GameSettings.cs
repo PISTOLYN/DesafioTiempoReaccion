@@ -9,6 +9,7 @@ public class GameSettings
     public string BotonRojo { get; set; } = "A";
     public string BotonAzul { get; set; } = "L";
     public string BotonReinicio { get; set; } = "R";
+    public double MargenAciertoSegundos { get; set; } = 1.0;   // ± segundos para acertar el objetivo
     public bool UsarVoz { get; set; } = true;
     public string SonidoCuenta { get; set; } = "";    // vacío = sonido por defecto
     public string SonidoAhora { get; set; } = "";
@@ -50,6 +51,7 @@ public class GameSettings
 
     public void Normalize()
     {
+        MargenAciertoSegundos = Math.Clamp(MargenAciertoSegundos, 0.05, 30.0);
         MusicaPath ??= ""; SonidoCuenta ??= ""; SonidoAhora ??= ""; SonidoDetener ??= ""; SonidoGanador ??= "";
         if (string.IsNullOrWhiteSpace(TituloDesafio)) TituloDesafio = "TIEMPO DE REACCIÓN";
         TiempoLimiteSegundos = Math.Clamp(TiempoLimiteSegundos, 3, 60);

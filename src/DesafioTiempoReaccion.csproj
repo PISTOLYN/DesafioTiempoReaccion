@@ -12,4 +12,7 @@
     <PackageReference Include="HidSharp" Version="2.1.0" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\fondo.png" />
+  </ItemGroup>
 </Project>

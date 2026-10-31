@@ -6,8 +6,10 @@ public class TargetTimeResult
     public double RojoMs { get; init; }
     public double AzulMs { get; init; }
     public double ObjetivoMs { get; init; }
-    /// <summary>Equipo ganador; null si hubo empate exacto.</summary>
+    /// <summary>Equipo ganador; null si nadie acertó o hubo empate.</summary>
     public Team? Winner { get; init; }
+    public bool RojoAcerto { get; init; }
+    public bool AzulAcerto { get; init; }
 }
 
 /// <summary>
@@ -24,6 +26,8 @@ public class TargetTimeEngine
 
     public GameState State { get; private set; } = GameState.Inicio;
     public int TargetMinutes { get; private set; } = MinMinutes;
+    /// <summary>Margen (± ms) para considerar que un equipo "le atinó" al objetivo.</summary>
+    public double MargenMs { get; set; } = 1000;
     public double TargetMs => TargetMinutes * 60000.0;
     public int PuntosRojo { get; private set; }
     public int PuntosAzul { get; private set; }
@@ -101,12 +105,19 @@ public class TargetTimeEngine
     private void Finish()
     {
         double dr = Math.Abs(_rojoMs - TargetMs), da = Math.Abs(_azulMs - TargetMs);
-        Team? winner = dr < da ? Team.Rojo : (da < dr ? Team.Azul : (Team?)null);
+        bool aciertoR = dr <= MargenMs, aciertoA = da <= MargenMs;
+
+        // Solo puede ganar quien le atinó al objetivo. Si acertaron los dos, gana el más cercano.
+        Team? winner = null;
+        if (aciertoR && !aciertoA) winner = Team.Rojo;
+        else if (aciertoA && !aciertoR) winner = Team.Azul;
+        else if (aciertoR && aciertoA) winner = dr < da ? Team.Rojo : (da < dr ? Team.Azul : (Team?)null);
+
         if (winner == Team.Rojo) PuntosRojo++;
         else if (winner == Team.Azul) PuntosAzul++;
 
         SetState(GameState.Ganador);
-        Finished?.Invoke(new TargetTimeResult { RojoMs = _rojoMs, AzulMs = _azulMs, ObjetivoMs = TargetMs, Winner = winner });
+        Finished?.Invoke(new TargetTimeResult { RojoMs = _rojoMs, AzulMs = _azulMs, ObjetivoMs = TargetMs, Winner = winner, RojoAcerto = aciertoR, AzulAcerto = aciertoA });
     }
 
     private static double TicksToMs(long ticks) => ticks * 1000.0 / Stopwatch.Frequency;

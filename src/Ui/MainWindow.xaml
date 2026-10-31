@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:DesafioTiempoReaccion.Ui"
         x:Class="DesafioTiempoReaccion.Ui.MainWindow"
-        Title="Desafío Tiempo de Reacción" Width="1280" Height="760" MinWidth="960" MinHeight="580"
+        Title="Desafío Tiempo de Reacción" Width="1280" Height="870" MinWidth="900" MinHeight="620"
         WindowStartupLocation="CenterScreen"
         PreviewKeyDown="Window_PreviewKeyDown" PreviewKeyUp="Window_PreviewKeyUp"
         FontFamily="Segoe UI Black" Background="#030615">
@@ -64,301 +64,65 @@
 
         <!-- ================= JUEGO PRINCIPAL ================= -->
         <Viewbox Stretch="Uniform">
-            <Grid Width="1920" Height="1080" ClipToBounds="True">
+            <Grid Width="1559" Height="1009" ClipToBounds="True">
+                <Image Source="/Assets/fondo.png" Width="1559" Height="1009" Stretch="Fill"/>
 
-                <!-- Ambiente de estadio -->
-                <Canvas IsHitTestVisible="False">
-                    <Polygon Points="0,0 340,0 1010,780 560,780">
-                        <Polygon.Fill>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0.55,1">
-                                <GradientStop Color="#3A5AA9FF" Offset="0"/>
-                                <GradientStop Color="#00000000" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Polygon.Fill>
-                    </Polygon>
-                    <Polygon Points="1920,0 1580,0 910,780 1360,780">
-                        <Polygon.Fill>
-                            <LinearGradientBrush StartPoint="1,0" EndPoint="0.45,1">
-                                <GradientStop Color="#3A5AA9FF" Offset="0"/>
-                                <GradientStop Color="#00000000" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Polygon.Fill>
-                    </Polygon>
-                    <Ellipse Canvas.Left="460" Canvas.Top="860" Width="1000" Height="300">
-                        <Ellipse.Fill>
-                            <RadialGradientBrush>
-                                <GradientStop Color="#552E7BFF" Offset="0"/>
-                                <GradientStop Color="#00000000" Offset="1"/>
-                            </RadialGradientBrush>
-                        </Ellipse.Fill>
-                    </Ellipse>
+            <Grid x:Name="MarcadorRojo" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="150,84,0,0" Width="126" Height="68" RenderTransformOrigin="0.5,0.5">
+                <Grid.RenderTransform><ScaleTransform x:Name="ScaleMarcadorRojo" ScaleX="1" ScaleY="1"/></Grid.RenderTransform>
+                <TextBlock x:Name="TxtPuntosRojo" Text="0" Foreground="White" FontSize="62" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="3" Opacity="0.7"/></TextBlock.Effect>
+                </TextBlock>
+            </Grid>
 
-                    <!-- Focos esquina izquierda -->
-                    <Ellipse Canvas.Left="14"  Canvas.Top="14" Width="46" Height="46" Fill="White" Effect="{StaticResource GlowCian}"/>
-                    <Ellipse Canvas.Left="84"  Canvas.Top="4"  Width="40" Height="40" Fill="White" Effect="{StaticResource GlowCian}"/>
-                    <Ellipse Canvas.Left="150" Canvas.Top="18" Width="34" Height="34" Fill="#E8F2FF" Effect="{StaticResource GlowCian}"/>
-                    <!-- Focos esquina derecha -->
-                    <Ellipse Canvas.Left="1860" Canvas.Top="14" Width="46" Height="46" Fill="White" Effect="{StaticResource GlowCian}"/>
-                    <Ellipse Canvas.Left="1796" Canvas.Top="4"  Width="40" Height="40" Fill="White" Effect="{StaticResource GlowCian}"/>
-                    <Ellipse Canvas.Left="1736" Canvas.Top="18" Width="34" Height="34" Fill="#E8F2FF" Effect="{StaticResource GlowCian}"/>
-                </Canvas>
+            <Grid x:Name="MarcadorAzul" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="1285,84,0,0" Width="120" Height="68" RenderTransformOrigin="0.5,0.5">
+                <Grid.RenderTransform><ScaleTransform x:Name="ScaleMarcadorAzul" ScaleX="1" ScaleY="1"/></Grid.RenderTransform>
+                <TextBlock x:Name="TxtPuntosAzul" Text="0" Foreground="White" FontSize="62" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="3" Opacity="0.7"/></TextBlock.Effect>
+                </TextBlock>
+            </Grid>
 
-                <!-- ================= TÍTULO ================= -->
-                <Grid Width="780" Height="236" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0">
-                    <Path Data="M 70,0 L 710,0 L 780,60 L 780,176 L 710,236 L 70,236 L 0,176 L 0,60 Z"
-                          Fill="#CC050C2A" Stroke="#3C9CFF" StrokeThickness="5" StrokeLineJoin="Round" Effect="{StaticResource GlowCian}"/>
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <TextBlock Text="DESAFÍO" FontSize="84" LineHeight="84" LineStackingStrategy="BlockLineHeight"
-                                   FontStyle="Italic" TextAlignment="Center" Foreground="White">
-                            <TextBlock.Effect><DropShadowEffect Color="#1B3DFF" BlurRadius="0" ShadowDepth="6" Direction="300" Opacity="1"/></TextBlock.Effect>
-                        </TextBlock>
-                        <TextBlock x:Name="TxtTituloJuego" Text="TIEMPO DE REACCIÓN" FontSize="50" LineHeight="54" LineStackingStrategy="BlockLineHeight"
-                                   FontStyle="Italic" TextAlignment="Center">
-                            <TextBlock.Foreground>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                    <GradientStop Color="#FFF07A" Offset="0"/>
-                                    <GradientStop Color="#FFB300" Offset="1"/>
-                                </LinearGradientBrush>
-                            </TextBlock.Foreground>
-                            <TextBlock.Effect><DropShadowEffect Color="#8A3A00" BlurRadius="0" ShadowDepth="5" Direction="300" Opacity="1"/></TextBlock.Effect>
-                        </TextBlock>
-                        <TextBlock Text="CHALLENGE" FontSize="62" LineHeight="64" LineStackingStrategy="BlockLineHeight"
-                                   FontStyle="Italic" TextAlignment="Center" Foreground="White">
-                            <TextBlock.Effect><DropShadowEffect Color="#1B3DFF" BlurRadius="0" ShadowDepth="5" Direction="300" Opacity="1"/></TextBlock.Effect>
-                        </TextBlock>
-                    </StackPanel>
+            <ui:SevenSegmentDisplay x:Name="DispRojo" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="100,380,0,0" Width="400" Height="140" Text="00:00.00"
+                                    OnBrush="#C6FF2E" OffBrush="#0F1A07" Effect="{StaticResource GlowVerde}"/>
+
+            <ui:SevenSegmentDisplay x:Name="DispAzul" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="1070,380,0,0" Width="400" Height="140" Text="00:00.00"
+                                    OnBrush="#C6FF2E" OffBrush="#0F1A07" Effect="{StaticResource GlowVerde}"/>
+
+            <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="135,575,0,0" Width="300" Height="300" IsHitTestVisible="False">
+                <Ellipse x:Name="PulsoRojo" Width="236" Height="236" Fill="White" Opacity="0"/>
+                <TextBlock x:Name="TxtKeyRojo" Text="1" Foreground="White" Opacity="0.55" FontSize="96"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,24,0,0">
+                    <TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="3" Opacity="0.6"/></TextBlock.Effect>
+                </TextBlock>
+                <Grid x:Name="BadgeRojo" Visibility="Collapsed">
+                    <Ellipse Width="236" Height="236" Fill="#B0000000"/>
+                    <TextBlock Text="¡DETENIDO!" Foreground="White" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Grid>
+            </Grid>
 
-                
-                <!-- ===== MARCADOR Rojo ===== -->
-                <Grid x:Name="MarcadorRojo" Width="300" Height="160" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="70,34,0,0"
-                      RenderTransformOrigin="0.5,0.5">
-                    <Grid.RenderTransform><ScaleTransform x:Name="ScaleMarcadorRojo" ScaleX="1" ScaleY="1"/></Grid.RenderTransform>
-                    <Border Margin="0,30,0,0" CornerRadius="14" BorderThickness="3" BorderBrush="#FF8A8A" Effect="{StaticResource GlowRojo}">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <GradientStop Color="#E61C1C" Offset="0"/>
-                                <GradientStop Color="#7A0A0A" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <TextBlock x:Name="TxtPuntosRojo" Text="0" Foreground="White" FontSize="84" FontWeight="Black"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="3" Opacity="0.7"/></TextBlock.Effect>
-                        </TextBlock>
-                    </Border>
-                    <Border Width="150" Height="40" VerticalAlignment="Top" CornerRadius="8" Background="#1E0303" BorderBrush="#FF8A8A" BorderThickness="2">
-                        <TextBlock Text="PUNTO" Foreground="White" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
+            <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="1120,575,0,0" Width="300" Height="300" IsHitTestVisible="False">
+                <Ellipse x:Name="PulsoAzul" Width="236" Height="236" Fill="White" Opacity="0"/>
+                <TextBlock x:Name="TxtKeyAzul" Text="2" Foreground="White" Opacity="0.55" FontSize="96"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,24,0,0">
+                    <TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="3" Opacity="0.6"/></TextBlock.Effect>
+                </TextBlock>
+                <Grid x:Name="BadgeAzul" Visibility="Collapsed">
+                    <Ellipse Width="236" Height="236" Fill="#B0000000"/>
+                    <TextBlock Text="¡DETENIDO!" Foreground="White" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Grid>
+            </Grid>
 
-                <!-- ===== PANEL Rojo ===== -->
-                <Grid x:Name="PanelRojo" Width="660" Height="780" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30,256,0,0">
-                    <Path Data="M 0,70 L 70,0 L 590,0 L 660,70 L 660,710 L 590,780 L 70,780 L 0,710 Z"
-                          Stroke="#FF3A3A" StrokeThickness="6" StrokeLineJoin="Round" Effect="{StaticResource GlowRojo}">
-                        <Path.Fill>
-                            <RadialGradientBrush Center="0.5,0.35" GradientOrigin="0.5,0.35" RadiusX="0.85" RadiusY="0.85">
-                                <GradientStop Color="#6B0A0A" Offset="0"/>
-                                <GradientStop Color="#1E0303" Offset="1"/>
-                            </RadialGradientBrush>
-                        </Path.Fill>
-                    </Path>
-                    <Path Margin="21,21,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"
-                          Data="M 0,52 L 52,0 L 566,0 L 618,52 L 618,686 L 566,738 L 52,738 L 0,686 Z"
-                          Stroke="#FF8A8A" StrokeThickness="2" Opacity="0.35" StrokeLineJoin="Round"/>
+                <!-- Centro: etiqueta y display del objetivo -->
+                <Viewbox HorizontalAlignment="Left" VerticalAlignment="Top" Margin="630,306,0,0" Width="295" Height="44" Stretch="Uniform" StretchDirection="DownOnly">
+                    <TextBlock x:Name="TxtEtiquetaCentral" Text="TIEMPO OBJETIVO" Foreground="White" FontSize="28" TextAlignment="Center"/>
+                </Viewbox>
+                <ui:SevenSegmentDisplay x:Name="DispCentral" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="648,378,0,0" Width="260" Height="102" Text="05:00"
+                                        OnBrush="#C6FF2E" OffBrush="#0F1A07" Effect="{StaticResource GlowVerde}"/>
 
-                    <!-- Cabecera -->
-                    <Grid Width="560" Height="92" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,34,0,0">
-                        <Path Data="M 40,0 L 520,0 L 560,46 L 520,92 L 40,92 L 0,46 Z" Stroke="#FF8A8A" StrokeThickness="3" StrokeLineJoin="Round">
-                            <Path.Fill>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                    <GradientStop Color="#E61C1C" Offset="0"/>
-                                    <GradientStop Color="#7A0A0A" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Path.Fill>
-                        </Path>
-                        <TextBlock Text="EQUIPO ROJO" Foreground="White" FontSize="54" FontStyle="Italic"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="4" Opacity="0.8"/></TextBlock.Effect>
-                        </TextBlock>
-                    </Grid>
-
-                    <!-- Display de tiempo del equipo -->
-                    <Border Width="570" Height="190" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,150,0,0"
-                            CornerRadius="16" Background="#030508" BorderBrush="#FF3A3A" BorderThickness="4">
-                        <ui:SevenSegmentDisplay x:Name="DispRojo" Height="118" Margin="26,0" Text="00.00"
-                                                OnBrush="#B8FF3F" OffBrush="#16260C" Effect="{StaticResource GlowVerde}"/>
-                    </Border>
-
-                    <!-- Botón físico -->
-                    <Grid Width="310" Height="310" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,362,0,0"
-                          RenderTransformOrigin="0.5,0.5">
-                        <Grid.RenderTransform><ScaleTransform x:Name="ScaleBtnRojo" ScaleX="1" ScaleY="1"/></Grid.RenderTransform>
-                        <Ellipse Width="310" Height="310" Stroke="#222222" StrokeThickness="2" Effect="{StaticResource GlowRojo}">
-                            <Ellipse.Fill>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#FAFAFA" Offset="0"/>
-                                    <GradientStop Color="#7A7A7A" Offset="0.45"/>
-                                    <GradientStop Color="#E4E4E4" Offset="0.75"/>
-                                    <GradientStop Color="#5A5A5A" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Ellipse.Fill>
-                        </Ellipse>
-                        <Ellipse Width="282" Height="282" Fill="#1A0505"/>
-                        <Ellipse Width="262" Height="262">
-                            <Ellipse.Fill>
-                                <RadialGradientBrush Center="0.4,0.3" GradientOrigin="0.35,0.25" RadiusX="0.75" RadiusY="0.75">
-                                    <GradientStop Color="#FFA0A0" Offset="0"/>
-                                    <GradientStop Color="#FF1E1E" Offset="0.5"/>
-                                    <GradientStop Color="#8A0000" Offset="1"/>
-                                </RadialGradientBrush>
-                            </Ellipse.Fill>
-                        </Ellipse>
-                        <Ellipse Width="170" Height="80" VerticalAlignment="Top" Margin="0,46,0,0">
-                            <Ellipse.Fill>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                    <GradientStop Color="#AAFFFFFF" Offset="0"/>
-                                    <GradientStop Color="#00FFFFFF" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Ellipse.Fill>
-                        </Ellipse>
-                        <TextBlock x:Name="TxtKeyRojo" Text="A" Foreground="White" Opacity="0.55" FontSize="120"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,40,0,0">
-                            <TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="3" Opacity="0.6"/></TextBlock.Effect>
-                        </TextBlock>
-                    </Grid>
-
-                    <!-- Placa inferior -->
-                    <Grid Width="500" Height="66" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,694,0,0">
-                        <Path Data="M 30,0 L 470,0 L 500,33 L 470,66 L 30,66 L 0,33 Z" Fill="#5A0909" Stroke="#FF3A3A" StrokeThickness="3" StrokeLineJoin="Round"/>
-                        <TextBlock x:Name="TxtPlacaRojo" Text="PRESIONA EL BOTÓN" Foreground="White" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                </Grid>
-
-                
-                <!-- ===== MARCADOR Azul ===== -->
-                <Grid x:Name="MarcadorAzul" Width="300" Height="160" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,34,70,0"
-                      RenderTransformOrigin="0.5,0.5">
-                    <Grid.RenderTransform><ScaleTransform x:Name="ScaleMarcadorAzul" ScaleX="1" ScaleY="1"/></Grid.RenderTransform>
-                    <Border Margin="0,30,0,0" CornerRadius="14" BorderThickness="3" BorderBrush="#8FC0FF" Effect="{StaticResource GlowAzul}">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <GradientStop Color="#1F5FFF" Offset="0"/>
-                                <GradientStop Color="#0A2A8A" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <TextBlock x:Name="TxtPuntosAzul" Text="0" Foreground="White" FontSize="84" FontWeight="Black"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="3" Opacity="0.7"/></TextBlock.Effect>
-                        </TextBlock>
-                    </Border>
-                    <Border Width="150" Height="40" VerticalAlignment="Top" CornerRadius="8" Background="#030818" BorderBrush="#8FC0FF" BorderThickness="2">
-                        <TextBlock Text="PUNTO" Foreground="White" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                </Grid>
-
-                <!-- ===== PANEL Azul ===== -->
-                <Grid x:Name="PanelAzul" Width="660" Height="780" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,256,30,0">
-                    <Path Data="M 0,70 L 70,0 L 590,0 L 660,70 L 660,710 L 590,780 L 70,780 L 0,710 Z"
-                          Stroke="#2F7BFF" StrokeThickness="6" StrokeLineJoin="Round" Effect="{StaticResource GlowAzul}">
-                        <Path.Fill>
-                            <RadialGradientBrush Center="0.5,0.35" GradientOrigin="0.5,0.35" RadiusX="0.85" RadiusY="0.85">
-                                <GradientStop Color="#0A1F6B" Offset="0"/>
-                                <GradientStop Color="#030818" Offset="1"/>
-                            </RadialGradientBrush>
-                        </Path.Fill>
-                    </Path>
-                    <Path Margin="21,21,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"
-                          Data="M 0,52 L 52,0 L 566,0 L 618,52 L 618,686 L 566,738 L 52,738 L 0,686 Z"
-                          Stroke="#8FC0FF" StrokeThickness="2" Opacity="0.35" StrokeLineJoin="Round"/>
-
-                    <!-- Cabecera -->
-                    <Grid Width="560" Height="92" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,34,0,0">
-                        <Path Data="M 40,0 L 520,0 L 560,46 L 520,92 L 40,92 L 0,46 Z" Stroke="#8FC0FF" StrokeThickness="3" StrokeLineJoin="Round">
-                            <Path.Fill>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                    <GradientStop Color="#1F5FFF" Offset="0"/>
-                                    <GradientStop Color="#0A2A8A" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Path.Fill>
-                        </Path>
-                        <TextBlock Text="EQUIPO AZUL" Foreground="White" FontSize="54" FontStyle="Italic"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="4" Opacity="0.8"/></TextBlock.Effect>
-                        </TextBlock>
-                    </Grid>
-
-                    <!-- Display de tiempo del equipo -->
-                    <Border Width="570" Height="190" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,150,0,0"
-                            CornerRadius="16" Background="#030508" BorderBrush="#2F7BFF" BorderThickness="4">
-                        <ui:SevenSegmentDisplay x:Name="DispAzul" Height="118" Margin="26,0" Text="00.00"
-                                                OnBrush="#B8FF3F" OffBrush="#16260C" Effect="{StaticResource GlowVerde}"/>
-                    </Border>
-
-                    <!-- Botón físico -->
-                    <Grid Width="310" Height="310" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,362,0,0"
-                          RenderTransformOrigin="0.5,0.5">
-                        <Grid.RenderTransform><ScaleTransform x:Name="ScaleBtnAzul" ScaleX="1" ScaleY="1"/></Grid.RenderTransform>
-                        <Ellipse Width="310" Height="310" Stroke="#222222" StrokeThickness="2" Effect="{StaticResource GlowAzul}">
-                            <Ellipse.Fill>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#FAFAFA" Offset="0"/>
-                                    <GradientStop Color="#7A7A7A" Offset="0.45"/>
-                                    <GradientStop Color="#E4E4E4" Offset="0.75"/>
-                                    <GradientStop Color="#5A5A5A" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Ellipse.Fill>
-                        </Ellipse>
-                        <Ellipse Width="282" Height="282" Fill="#050A1A"/>
-                        <Ellipse Width="262" Height="262">
-                            <Ellipse.Fill>
-                                <RadialGradientBrush Center="0.4,0.3" GradientOrigin="0.35,0.25" RadiusX="0.75" RadiusY="0.75">
-                                    <GradientStop Color="#A8D0FF" Offset="0"/>
-                                    <GradientStop Color="#1E64FF" Offset="0.5"/>
-                                    <GradientStop Color="#00208A" Offset="1"/>
-                                </RadialGradientBrush>
-                            </Ellipse.Fill>
-                        </Ellipse>
-                        <Ellipse Width="170" Height="80" VerticalAlignment="Top" Margin="0,46,0,0">
-                            <Ellipse.Fill>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                    <GradientStop Color="#AAFFFFFF" Offset="0"/>
-                                    <GradientStop Color="#00FFFFFF" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Ellipse.Fill>
-                        </Ellipse>
-                        <TextBlock x:Name="TxtKeyAzul" Text="L" Foreground="White" Opacity="0.55" FontSize="120"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,40,0,0">
-                            <TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="3" Opacity="0.6"/></TextBlock.Effect>
-                        </TextBlock>
-                    </Grid>
-
-                    <!-- Placa inferior -->
-                    <Grid Width="500" Height="66" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,694,0,0">
-                        <Path Data="M 30,0 L 470,0 L 500,33 L 470,66 L 30,66 L 0,33 Z" Fill="#09205A" Stroke="#2F7BFF" StrokeThickness="3" StrokeLineJoin="Round"/>
-                        <TextBlock x:Name="TxtPlacaAzul" Text="PRESIONA EL BOTÓN" Foreground="White" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                </Grid>
-
-
-                <!-- ================= PANEL CENTRAL ================= -->
-                <Grid Width="500" Height="780" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,256,0,0">
-
-                    <!-- Etiqueta + display central -->
-                    <Grid Height="50" VerticalAlignment="Top">
-                        <Path Data="M 24,0 L 476,0 L 500,25 L 476,50 L 24,50 L 0,25 Z" Fill="#0A2A6E" Stroke="#3C9CFF" StrokeThickness="3" StrokeLineJoin="Round"/>
-                        <TextBlock x:Name="TxtEtiquetaCentral" Text="TIEMPO DE REACCIÓN" Foreground="White" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                    <Border Height="170" VerticalAlignment="Top" Margin="0,66,0,0" CornerRadius="16" Background="#030508"
-                            BorderBrush="#3C9CFF" BorderThickness="4" Effect="{StaticResource GlowCian}">
-                        <ui:SevenSegmentDisplay x:Name="DispCentral" Height="112" Margin="26,0" Text="00.00"
-                                                OnBrush="#B8FF3F" OffBrush="#16260C" Effect="{StaticResource GlowVerde}"/>
-                    </Border>
-
-                    <!-- Caja de señal / mensajes -->
-                    <Border x:Name="CajaSenal" Height="290" VerticalAlignment="Top" Margin="0,256,0,0" CornerRadius="18"
-                            BorderThickness="4" BorderBrush="#3C9CFF" Background="#553C9CFF">
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="16,0">
-                            <Grid Width="84" Height="84" Margin="0,0,0,8">
+                <!-- Caja de señal / mensajes -->
+                <Border x:Name="CajaSenal" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="612,550,0,0" Width="336" Height="192" CornerRadius="12" BorderThickness="3" BorderBrush="#3C9CFF" Background="#553C9CFF">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="8,0">
+                        <Viewbox Width="50" Height="50" Margin="0,0,0,4">
+                            <Grid Width="84" Height="84">
                                 <Ellipse Stroke="White" StrokeThickness="6" Margin="4,10,4,4"/>
                                 <Rectangle Width="24" Height="9" Fill="White" RadiusX="2" RadiusY="2" VerticalAlignment="Top" HorizontalAlignment="Center"/>
                                 <Rectangle Width="5" Height="28" Fill="White" VerticalAlignment="Top" HorizontalAlignment="Center"
@@ -367,44 +131,25 @@
                                 </Rectangle>
                                 <Ellipse Width="11" Height="11" Fill="White" VerticalAlignment="Top" Margin="0,40,0,0"/>
                             </Grid>
-                            <TextBlock x:Name="TxtMensaje" Text="ESPERA LA SEÑAL" Foreground="White" FontSize="28" TextAlignment="Center" TextWrapping="Wrap"/>
-                            <TextBlock x:Name="TxtSub" Text="Pulsa ESPACIO para comenzar" Foreground="#DDE8FF" FontSize="20" TextAlignment="Center"
-                                       TextWrapping="Wrap" Margin="0,10,0,0"/>
-                        </StackPanel>
-                    </Border>
+                        </Viewbox>
+                        <TextBlock x:Name="TxtMensaje" Text="AJUSTA EL TIEMPO" Foreground="White" FontSize="22" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="316"/>
+                        <TextBlock x:Name="TxtSub" Text="" Foreground="#DDE8FF" FontSize="14" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="316" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
 
-                    <!-- Modo de juego (decorativo: solo existe un modo) -->
-                    <Border Height="110" VerticalAlignment="Top" Margin="0,566,0,0" CornerRadius="14" Background="#CC050C2A"
-                            BorderBrush="#3C9CFF" BorderThickness="3">
-                        <Grid Margin="14,8">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock x:Name="TxtModoTitulo" Grid.Row="0" Text="⚙  MODO DE JUEGO" Foreground="White" FontSize="22" Margin="2,0,0,6"/>
-                            <Border Grid.Row="1" CornerRadius="10" Background="#0B1B45" BorderBrush="#3C9CFF" BorderThickness="2">
-                                <Grid>
-                                    <Border Width="64" HorizontalAlignment="Left" Background="Transparent" Cursor="Hand" MouseLeftButtonDown="ModoAnterior_Click" ToolTip="Cambiar modo (TAB)">
-                                        <Polygon Points="0,13 15,0 15,26" Fill="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <TextBlock x:Name="TxtModo" Text="TIEMPO DE REACCIÓN" Foreground="White" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    <Border Width="64" HorizontalAlignment="Right" Background="Transparent" Cursor="Hand" MouseLeftButtonDown="ModoSiguiente_Click" ToolTip="Cambiar modo (TAB)">
-                                        <Polygon Points="15,13 0,0 0,26" Fill="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                </Grid>
-                            </Border>
-                        </Grid>
-                    </Border>
+                <!-- Selector (◀ ▶) -->
+                <Viewbox HorizontalAlignment="Left" VerticalAlignment="Top" Margin="650,884,0,0" Width="255" Height="44" Stretch="Uniform" StretchDirection="DownOnly" IsHitTestVisible="False">
+                    <TextBlock x:Name="TxtModo" Text="OBJETIVO 05:00" Foreground="White" FontSize="30" TextAlignment="Center"/>
+                </Viewbox>
+                <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="588,872,0,0" Width="62" Height="68" Background="Transparent" Cursor="Hand" MouseLeftButtonDown="ModoAnterior_Click" ToolTip="Menos tiempo (←)"/>
+                <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="905,872,0,0" Width="70" Height="68" Background="Transparent" Cursor="Hand" MouseLeftButtonDown="ModoSiguiente_Click" ToolTip="Más tiempo (→)"/>
 
-                    <!-- Botones de control -->
-                    <UniformGrid Columns="3" Height="54" VerticalAlignment="Top" Margin="0,696,0,0">
-                        <Button Content="▶ INICIAR" Style="{StaticResource ChipButton}" Margin="0,0,5,0" Click="BtnIniciar_Click" ToolTip="ESPACIO"/>
-                        <Button Content="↺ REINICIAR" Style="{StaticResource ChipButton}" Margin="5,0" Click="BtnReiniciar_Click" ToolTip="Tecla de reinicio"/>
-                        <Button Content="⚙ CONFIG" Style="{StaticResource ChipButton}" Margin="5,0,0,0" Click="BtnConfig_Click" ToolTip="F1"/>
-                    </UniformGrid>
-                    <TextBlock x:Name="TxtAyuda" Text="ESPACIO iniciar · TAB modo · F1 config · F11 pantalla" Foreground="#7F93C7" FontSize="15"
-                               HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,2"/>
-                </Grid>
+                <!-- Controles -->
+                <UniformGrid Columns="3" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="590,956,0,0" Width="385" Height="38">
+                    <Button Content="▶ INICIAR" FontSize="13" Style="{StaticResource ChipButton}" Margin="0,0,4,0" Click="BtnIniciar_Click" ToolTip="ESPACIO"/>
+                    <Button Content="↺ REINICIAR" FontSize="13" Style="{StaticResource ChipButton}" Margin="4,0" Click="BtnReiniciar_Click" ToolTip="Tecla de reinicio"/>
+                    <Button Content="⚙ CONFIG" FontSize="13" Style="{StaticResource ChipButton}" Margin="4,0,0,0" Click="BtnConfig_Click" ToolTip="F1 · F11 pantalla completa · TAB cambia de modo"/>
+                </UniformGrid>
             </Grid>
         </Viewbox>
 
@@ -422,6 +167,9 @@
 
                         <TextBlock Text="Tiempo límite para presionar tras la señal (segundos, 3-60):" Foreground="White" FontSize="20"/>
                         <TextBox x:Name="TxtCfgLimite" Style="{StaticResource CfgTextBox}" MaxLength="2" Width="120" HorizontalAlignment="Left" Margin="0,4,0,14"/>
+
+                        <TextBlock Text="Margen de acierto del modo Tiempo Objetivo (segundos, ±):" Foreground="White" FontSize="20"/>
+                        <TextBox x:Name="TxtCfgMargen" Style="{StaticResource CfgTextBox}" MaxLength="5" Width="120" HorizontalAlignment="Left" Margin="0,4,0,14"/>
 
                         <TextBlock Text="Botones físicos (haz clic en la caja y presiona la tecla):" Foreground="White" FontSize="20" Margin="0,0,0,6"/>
                         <Grid>

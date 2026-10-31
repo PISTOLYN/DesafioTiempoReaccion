@@ -60,6 +60,12 @@ public partial class MainWindow : Window
         _timer.Tick += (_, _) => OnTick();
         _timer.Start();
 
+        _target.MargenMs = _settings.MargenAciertoSegundos * 1000.0;
+
+        // Manecilla del cronómetro: gira siempre, solo como decoración
+        ManoReloj.BeginAnimation(RotateTransform.AngleProperty,
+            new DoubleAnimation(0, 360, TimeSpan.FromSeconds(3)) { RepeatBehavior = RepeatBehavior.Forever });
+
         AplicarModo();
     }
 
@@ -134,7 +140,7 @@ public partial class MainWindow : Window
                 SetBanner("¡PREPÁRATE!", "Escucha la cuenta regresiva", ColOro, 46);
                 break;
             case GameState.RondaActiva:
-                SetBanner("¡AHORA!", $"Objetivo {FormatTarget()}\nRojo: tecla 1 · Azul: tecla 2", ColVerde, 88, 0xCC);
+                SetBanner("¡AHORA!", $"Detente en {FormatTarget()}\nRojo: tecla 1 · Azul: tecla 2", ColVerde, 88, 0xCC);
                 _musica.Reproducir(_settings.MusicaPath);
                 break;
         }
@@ -158,7 +164,7 @@ public partial class MainWindow : Window
     private void OnTargetStopped(Team team, double ms)
     {
         (team == Team.Rojo ? DispRojo : DispAzul).Text = FormatTime(ms);
-        (team == Team.Rojo ? TxtPlacaRojo : TxtPlacaAzul).Text = "¡DETENIDO!";
+        (team == Team.Rojo ? BadgeRojo : BadgeAzul).Visibility = Visibility.Visible;
         _efectos.Reproducir("detener", _settings.SonidoDetener);
     }
 
@@ -171,7 +177,13 @@ public partial class MainWindow : Window
         string msg;
         if (r.Winner == Team.Rojo) { msg = "¡Ganó el Equipo Rojo!"; SetBanner(msg.ToUpperInvariant(), diffs, ColRojo, 38, 0x88); }
         else if (r.Winner == Team.Azul) { msg = "¡Ganó el Equipo Azul!"; SetBanner(msg.ToUpperInvariant(), diffs, ColAzul, 38, 0x88); }
-        else { msg = "¡Empate!"; SetBanner("¡EMPATE!", diffs, ColOro, 46, 0x88); }
+        else if (r.RojoAcerto && r.AzulAcerto) { msg = "¡Empate!"; SetBanner("¡EMPATE!", diffs, ColOro, 46, 0x88); }
+        else
+        {
+            msg = "Nadie acertó";
+            string margen = _settings.MargenAciertoSegundos.ToString("0.##", CultureInfo.InvariantCulture);
+            SetBanner("¡NADIE ACERTÓ!", $"Había que detenerse en {FormatTarget()} (± {margen} s)\n{diffs}", ColOro, 42, 0x88);
+        }
 
         if (_settings.UsarVoz) _voz.Decir(msg);
         _efectos.Reproducir("ganador", _settings.SonidoGanador);
@@ -187,22 +199,18 @@ public partial class MainWindow : Window
     /// <summary>La caja de abajo (◀ ▶) muestra el objetivo y lo cambia de 5 en 5 min.</summary>
     private void ActualizarSelector()
     {
-        if (_modo == Modo.TiempoObjetivo)
-        {
-            TxtModoTitulo.Text = "⚙  AJUSTAR TIEMPO OBJETIVO";
-            TxtModo.Text = FormatTarget();
-            TxtModo.FontSize = 30;
-        }
-        else
-        {
-            TxtModoTitulo.Text = "⚙  MODO DE JUEGO";
-            TxtModo.Text = "TIEMPO DE REACCIÓN";
-            TxtModo.FontSize = 22;
-        }
+        TxtModo.Text = _modo == Modo.TiempoObjetivo ? "OBJETIVO  " + FormatTarget() : "TIEMPO DE REACCIÓN";
     }
 
-    private static string Diff(double ms, double objetivoMs) =>
-        string.Format(CultureInfo.InvariantCulture, "{0:+0.00;-0.00;0.00} s", (ms - objetivoMs) / 1000.0);
+    private static string Diff(double ms, double objetivoMs)
+    {
+        double d = ms - objetivoMs;
+        string signo = d < 0 ? "-" : "+";
+        double a = Math.Abs(d);
+        return a >= 60000
+            ? signo + FormatTime(a)
+            : signo + (a / 1000.0).ToString("0.00", CultureInfo.InvariantCulture) + " s";
+    }
 
     // ------------------------------------------------------------------
     //  Reloj de pantalla
@@ -214,7 +222,6 @@ public partial class MainWindow : Window
             if (_engine.State != GameState.RondaActiva) return;
             double ms = _engine.ElapsedMs;
             DispCentral.Text = FormatSeconds(ms);
-            ManoReloj.Angle = ms / (_settings.TiempoLimiteSegundos * 1000.0) * 360.0 % 360.0;
         }
         else
         {
@@ -222,7 +229,6 @@ public partial class MainWindow : Window
             double ms = _target.ElapsedMs;
             if (!_target.RojoListo) DispRojo.Text = FormatTime(ms);
             if (!_target.AzulListo) DispAzul.Text = FormatTime(ms);
-            ManoReloj.Angle = ms / _target.TargetMs * 360.0 % 360.0;
         }
     }
 
@@ -269,9 +275,6 @@ public partial class MainWindow : Window
         bool t = _modo == Modo.TiempoObjetivo;
         TxtEtiquetaCentral.Text = t ? "TIEMPO OBJETIVO" : "TIEMPO DE REACCIÓN";
         ActualizarSelector();
-        TxtAyuda.Text = t
-            ? "◀ ▶ objetivo · ESPACIO iniciar · 1 / 2 detener · F1 config"
-            : "ESPACIO iniciar · TAB modo · F1 config · F11 pantalla";
         AplicarConfiguracion();
         ResetDisplays();
         MostrarInicio();
@@ -290,8 +293,7 @@ public partial class MainWindow : Window
         bool t = _modo == Modo.TiempoObjetivo;
         DispRojo.Text = DispAzul.Text = t ? "00:00.00" : "00.00";
         DispCentral.Text = t ? FormatTarget() : "00.00";
-        TxtPlacaRojo.Text = TxtPlacaAzul.Text = t ? "DETÉN TU TIEMPO" : "PRESIONA EL BOTÓN";
-        ManoReloj.Angle = 0;
+        BadgeRojo.Visibility = BadgeAzul.Visibility = Visibility.Collapsed;
     }
 
     private void ActualizarMarcadores(int rojo, int azul)
@@ -303,7 +305,7 @@ public partial class MainWindow : Window
     private void SetBanner(string titulo, string sub, Color acento, double tamano, byte alfaFondo = 0x55)
     {
         TxtMensaje.Text = titulo;
-        TxtMensaje.FontSize = tamano;
+        TxtMensaje.FontSize = Math.Max(14, tamano * 0.58);
         TxtSub.Text = sub;
         CajaSenal.BorderBrush = new SolidColorBrush(acento);
         CajaSenal.Background = new SolidColorBrush(Color.FromArgb(alfaFondo, acento.R, acento.G, acento.B));
@@ -324,8 +326,7 @@ public partial class MainWindow : Window
 
     private void VisualBoton(Team t, bool abajo)
     {
-        var s = t == Team.Rojo ? ScaleBtnRojo : ScaleBtnAzul;
-        s.ScaleX = s.ScaleY = abajo ? 0.93 : 1.0;
+        (t == Team.Rojo ? PulsoRojo : PulsoAzul).Opacity = abajo ? 0.3 : 0.0;
     }
 
     // ------------------------------------------------------------------
@@ -358,13 +359,12 @@ public partial class MainWindow : Window
     {
         string t = FormatKey(tecla);
         tb.Text = t;
-        tb.FontSize = t.Length == 1 ? 120 : t.Length <= 3 ? 70 : 34;
+        tb.FontSize = t.Length == 1 ? 96 : t.Length <= 3 ? 56 : 28;
     }
 
     private void AplicarConfiguracion()
     {
         bool t = _modo == Modo.TiempoObjetivo;
-        TxtTituloJuego.Text = t ? "TIEMPO OBJETIVO" : _settings.TituloDesafio.ToUpperInvariant();
         TxtTituloInicio.Text = _settings.TituloDesafio.ToUpperInvariant();
         PonerMarcaDeTecla(TxtKeyRojo, t ? "D1" : _settings.BotonRojo);
         PonerMarcaDeTecla(TxtKeyAzul, t ? "D2" : _settings.BotonAzul);
@@ -509,6 +509,7 @@ public partial class MainWindow : Window
         _cfgMusica = _settings.MusicaPath;
         MostrarMusicaCfg();
         ChkVoz.IsChecked = _settings.UsarVoz;
+        TxtCfgMargen.Text = _settings.MargenAciertoSegundos.ToString("0.##", CultureInfo.InvariantCulture);
         ConstruirFilasSonidos();
         TxtCfgAviso.Text = "";
         PantallaConfig.Visibility = Visibility.Visible;
@@ -530,9 +531,12 @@ public partial class MainWindow : Window
         _settings.BotonReinicio = KeyReinicio.Text;
         _settings.MusicaPath = _cfgMusica;
         _settings.UsarVoz = ChkVoz.IsChecked == true;
+        if (double.TryParse(TxtCfgMargen.Text.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out double mg))
+            _settings.MargenAciertoSegundos = mg;
         foreach (var (slot, _) in Slots) SetSonido(slot, _cfgSonidos.GetValueOrDefault(slot, ""));
         _settings.Normalize();
         _settings.Save();
+        _target.MargenMs = _settings.MargenAciertoSegundos * 1000.0;
 
         AplicarConfiguracion();
         PantallaConfig.Visibility = Visibility.Collapsed;

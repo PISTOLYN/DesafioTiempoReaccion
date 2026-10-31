@@ -35,3 +35,9 @@
 - Efectos de sonido: cuenta 3-2-1, ¡Ahora!, al detener y ganador. Traen sonido por defecto y en F1 puedes probarlos (▶), cambiarlos por tu MP3/WAV (ELEGIR…) o volver al original (DEFECTO).
 - F1 también permite desactivar la voz.
 - El modo Tiempo de Reacción sigue disponible con la tecla TAB.
+
+## Actualización: skin con la imagen + regla de acierto
+- El fondo ahora es tu imagen (src/Assets/fondo.png) y los números, displays, mensajes y botones se dibujan encima.
+- La manecilla del cronómetro gira siempre como decoración.
+- Solo gana quien se detiene dentro del margen del objetivo (por defecto ±1.00 s, editable en F1).
+  Si nadie acierta: "¡NADIE ACERTÓ!" y no se suma punto. Si aciertan los dos, gana el más cercano.
