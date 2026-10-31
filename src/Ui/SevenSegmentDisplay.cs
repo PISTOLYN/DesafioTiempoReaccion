@@ -95,8 +95,8 @@ public class SevenSegmentDisplay : FrameworkElement
     private static double NaturalWidth(string text)
     {
         double w = 0;
-        foreach (char c in text) w += c == '.' ? DotW : W + Spacing;
-        if (text.Length > 0 && text[^1] != '.') w -= Spacing;
+        foreach (char c in text) w += (c == '.' || c == ':') ? DotW : W + Spacing;
+        if (text.Length > 0 && text[^1] != '.' && text[^1] != ':') w -= Spacing;
         return w;
     }
 
@@ -126,6 +126,14 @@ public class SevenSegmentDisplay : FrameworkElement
             if (c == '.')
             {
                 dc.DrawEllipse(on, null, new Point(x + 0.12, 1 - M), T * 0.62, T * 0.62);
+                x += DotW;
+                continue;
+            }
+
+            if (c == ':')
+            {
+                dc.DrawEllipse(on, null, new Point(x + 0.12, 0.30), T * 0.55, T * 0.55);
+                dc.DrawEllipse(on, null, new Point(x + 0.12, 0.70), T * 0.55, T * 0.55);
                 x += DotW;
                 continue;
             }

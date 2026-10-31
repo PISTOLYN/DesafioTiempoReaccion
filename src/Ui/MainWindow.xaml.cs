@@ -1,8 +1,11 @@
+using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using DesafioTiempoReaccion.GameEngine;
 
@@ -10,182 +13,533 @@ namespace DesafioTiempoReaccion.Ui;
 
 public partial class MainWindow : Window
 {
-    private readonly GameEngine.GameEngine _engine = new();
-    private readonly GameSettings _settings = new();
-    private readonly DispatcherTimer _timerReloj;
-    private readonly DispatcherTimer _timerCronometro;
-    private readonly Random _random = new();
-    private double _anguloReloj = 0;
-    private int _tiempoObjetivoSegundos = 10; 
-    private long _startTime = 0;
+    private enum Modo { Reaccion, TiempoObjetivo }
 
-    // Variables para saber qué botón estamos configurando
-    private string _modoCaptura = ""; 
+    private static readonly Color ColRojo = Color.FromRgb(0xFF, 0x3A, 0x3A);
+    private static readonly Color ColAzul = Color.FromRgb(0x2F, 0x7B, 0xFF);
+    private static readonly Color ColVerde = Color.FromRgb(0x1F, 0xD8, 0x5A);
+    private static readonly Color ColOro = Color.FromRgb(0xFF, 0xD2, 0x1F);
+    private static readonly Color ColCian = Color.FromRgb(0x3C, 0x9C, 0xFF);
 
-    public string TituloDesafio => _settings.TituloDesafio;
-    public int PuntosRojo => _engine.PuntosRojo;
-    public int PuntosAzul => _engine.PuntosAzul;
-    
-    private string _mensajeEstado = "Pulsa ESPACIO para comenzar";
-    public string MensajeEstado
-    {
-        get => _mensajeEstado;
-        set { _mensajeEstado = value; RefreshBindings(); }
-    }
+    private static readonly Key[] TeclasReservadas =
+        { Key.Space, Key.Enter, Key.Escape, Key.F1, Key.F11, Key.Tab, Key.System, Key.Left, Key.Right };
+
+    private readonly GameSettings _settings = GameSettings.Load();
+    private readonly GameEngine.GameEngine _engine;
+    private readonly TargetTimeEngine _target = new();
+    private readonly Voz _voz = new();
+    private readonly Musica _musica = new();
+    private readonly DispatcherTimer _timer;
+    private Modo _modo = Modo.Reaccion;
+    private string _cfgMusica = "";
+    private bool _fullscreen;
 
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = this;
-        
+
+        _engine = new GameEngine.GameEngine(_settings);
         _engine.StateChanged += OnStateChanged;
         _engine.RoundFinished += OnRoundFinished;
+        _engine.TimedOut += OnTimedOut;
 
-        _timerReloj = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
-        _timerReloj.Tick += (_, _) =>
-        {
-            _anguloReloj = (_anguloReloj + 3) % 360;
-            RotacionManecilla.Angle = _anguloReloj;
-        };
-        _timerReloj.Start();
+        _target.StateChanged += OnTargetState;
+        _target.CountdownTick += OnTargetCountdown;
+        _target.TeamStopped += OnTargetStopped;
+        _target.Finished += OnTargetFinished;
+        _target.TargetChanged += OnTargetChanged;
 
-        _timerCronometro = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
-        _timerCronometro.Tick += (_, _) =>
-        {
-            if (_engine.State == GameState.RondaActiva)
-            {
-                var elapsed = (DateTime.Now.Ticks - _startTime) / 10000.0;
-                DisplayCentralText.Text = (elapsed / 1000).ToString("00.00");
-            }
-        };
-        _timerCronometro.Start();
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        _timer.Tick += (_, _) => OnTick();
+        _timer.Start();
 
-        ActualizarDisplayTiempo();
-        ActualizarBotonesConfig();
+        AplicarModo();
     }
 
-    private void ActualizarBotonesConfig()
+    protected override void OnClosed(EventArgs e)
     {
-        BtnConfigRojo.Content = $"Rojo: {_settings.BotonRojo}";
-        BtnConfigAzul.Content = $"Azul: {_settings.BotonAzul}";
-        BtnConfigReinicio.Content = $"Reinicio: {_settings.BotonReinicio}";
+        _musica.Detener();
+        _voz.Dispose();
+        base.OnClosed(e);
     }
 
-    private void ActualizarDisplayTiempo() => DisplayCentralText.Text = $"{_tiempoObjetivoSegundos:00}.00";
-
-    private void BtnMasTiempo_Click(object sender, RoutedEventArgs e) { _tiempoObjetivoSegundos += 5; ActualizarDisplayTiempo(); }
-    private void BtnMenosTiempo_Click(object sender, RoutedEventArgs e) { if (_tiempoObjetivoSegundos > 5) _tiempoObjetivoSegundos -= 5; ActualizarDisplayTiempo(); }
-
+    // ------------------------------------------------------------------
+    //  MODO 1: Tiempo de reacción (eventos del motor)
+    // ------------------------------------------------------------------
     private void OnStateChanged(GameState state)
     {
-        Dispatcher.Invoke(() =>
+        switch (state)
         {
-            switch (state)
-            {
-                case GameState.CuentaRegresiva: MensajeEstado = "PREPÁRATE..."; DisplayCentralText.Text = "00.00"; break;
-                case GameState.EsperandoSenal: MensajeEstado = "ESPERA LA SEÑAL..."; break;
-                case GameState.RondaActiva: MensajeEstado = "¡DETENLO EN EL TIEMPO!"; _startTime = DateTime.Now.Ticks; break;
-                case GameState.Ganador: MensajeEstado = "¡RESULTADO!"; break;
-            }
-        });
+            case GameState.CuentaRegresiva:
+                ResetDisplays();
+                SetBanner("¡PREPÁRATE!", "No presiones hasta ver la señal", ColOro, 46);
+                break;
+            case GameState.EsperandoSenal:
+                SetBanner("ESPERA LA SEÑAL…", "Quien presione antes pierde el punto", ColCian, 40);
+                break;
+            case GameState.RondaActiva:
+                SetBanner("¡AHORA!", "¡PRESIONA YA!", ColVerde, 88, 0xCC);
+                System.Media.SystemSounds.Exclamation.Play();
+                break;
+        }
     }
 
-    private void OnRoundFinished(Team winner, double msPresionado, double desviacion)
+    private void OnRoundFinished(ReactionRoundResult r)
     {
-        Dispatcher.Invoke(() =>
+        ActualizarMarcadores(_engine.PuntosRojo, _engine.PuntosAzul);
+
+        bool rojo = r.Winner == Team.Rojo;
+        string nombre = rojo ? "ROJO" : "AZUL";
+        Color color = rojo ? ColRojo : ColAzul;
+
+        if (r.FalseStart)
         {
-            if (msPresionado == -1) MensajeEstado = $"SALIDA EN FALSO. Gana {(winner == Team.Rojo ? "ROJO" : "AZUL")}";
-            else
-            {
-                DisplayCentralText.Text = (msPresionado / 1000.0).ToString("00.00");
-                if (Math.Abs(desviacion) <= 30) MensajeEstado = $"¡EXACTO! Gana {(winner == Team.Rojo ? "ROJO" : "AZUL")}";
-                else if (desviacion > 0) MensajeEstado = $"¡MUY TARDE! Gana {(winner == Team.Rojo ? "AZUL" : "ROJO")}";
-                else MensajeEstado = $"¡MUY PRONTO! Gana {(winner == Team.Rojo ? "AZUL" : "ROJO")}";
-
-                var targetBorder = (desviacion <= 30 && desviacion >= -30) 
-                    ? (winner == Team.Rojo ? FindName("MarcadorRojo") as Border : FindName("MarcadorAzul") as Border)
-                    : (winner == Team.Rojo ? FindName("MarcadorAzul") as Border : FindName("MarcadorRojo") as Border);
-                
-                if (targetBorder != null)
-                {
-                    var animacion = new DoubleAnimation { From = 1.0, To = 1.5, Duration = TimeSpan.FromMilliseconds(200), AutoReverse = true, RepeatBehavior = new RepeatBehavior(3) };
-                    targetBorder.BeginAnimation(OpacityProperty, animacion);
-                }
-            }
-            RefreshBindings();
-        });
-    }
-
-    private async void IniciarRonda()
-    {
-        if (_engine.State != GameState.Inicio && _engine.State != GameState.Ganador) return;
-        _engine.StartRound(_tiempoObjetivoSegundos);
-        await Task.Delay(2000);
-        _engine.BeginWaitingSignal();
-        await Task.Delay(_random.Next(2000, 5000));
-        if (_engine.State == GameState.EsperandoSenal) { _startTime = DateTime.Now.Ticks; _engine.ShowSignal(); }
-    }
-
-    // --- LÓGICA DE CAPTURA DE BOTONES USB ---
-    private void BtnConfigRojo_Click(object sender, RoutedEventArgs e) { _modoCaptura = "Rojo"; BtnConfigRojo.Content = "Presiona..."; }
-    private void BtnConfigAzul_Click(object sender, RoutedEventArgs e) { _modoCaptura = "Azul"; BtnConfigAzul.Content = "Presiona..."; }
-    private void BtnConfigReinicio_Click(object sender, RoutedEventArgs e) { _modoCaptura = "Reinicio"; BtnConfigReinicio.Content = "Presiona..."; }
-
-    private void Window_KeyDown(object sender, KeyEventArgs e)
-    {
-        // Si estamos en la pantalla de configuración capturando un botón...
-        if (PantallaConfig.Visibility == Visibility.Visible && _modoCaptura != "")
+            (r.Infractor == Team.Rojo ? DispRojo : DispAzul).Text = "--.--";
+            DispCentral.Text = "--.--";
+            SetBanner($"¡GANA EL EQUIPO {nombre}!",
+                      $"Salida en falso del equipo {(rojo ? "azul" : "rojo")}\nESPACIO para otra ronda", color, 38, 0x88);
+        }
+        else
         {
-            string tecla = e.Key.ToString();
-            
-            if (_modoCaptura == "Rojo") _settings.BotonRojo = tecla;
-            else if (_modoCaptura == "Azul") _settings.BotonAzul = tecla;
-            else if (_modoCaptura == "Reinicio") _settings.BotonReinicio = tecla;
-
-            _modoCaptura = "";
-            ActualizarBotonesConfig();
-            return; // Evitamos que la tecla haga otra cosa
+            string t = FormatSeconds(r.ReactionTimeMs);
+            (rojo ? DispRojo : DispAzul).Text = t;
+            DispCentral.Text = t;
+            SetBanner($"¡GANA EL EQUIPO {nombre}!",
+                      $"{r.ReactionTimeMs:F0} ms\nESPACIO para otra ronda", color, 38, 0x88);
         }
 
-        if (PantallaInicio.Visibility == Visibility.Visible && e.Key == Key.Enter)
+        PulsarMarcador(r.Winner);
+    }
+
+    private void OnTimedOut() =>
+        SetBanner("TIEMPO AGOTADO", "Nadie presionó a tiempo\nESPACIO para otra ronda", ColOro, 40);
+
+    // ------------------------------------------------------------------
+    //  MODO 2: Tiempo objetivo (eventos del motor)
+    // ------------------------------------------------------------------
+    private void OnTargetState(GameState state)
+    {
+        switch (state)
         {
-            PantallaInicio.Visibility = Visibility.Collapsed;
+            case GameState.CuentaRegresiva:
+                ResetDisplays();
+                SetBanner("¡PREPÁRATE!", "Escucha la cuenta regresiva", ColOro, 46);
+                break;
+            case GameState.RondaActiva:
+                SetBanner("¡AHORA!", $"Objetivo {FormatTarget()}\nRojo: tecla 1 · Azul: tecla 2", ColVerde, 88, 0xCC);
+                _musica.Reproducir(_settings.MusicaPath);
+                break;
+        }
+    }
+
+    private void OnTargetCountdown(int n)
+    {
+        if (n > 0)
+        {
+            SetBanner(n.ToString(CultureInfo.InvariantCulture), "", ColOro, 100);
+            _voz.Decir(n.ToString(CultureInfo.InvariantCulture));
+        }
+        else
+        {
+            _voz.Decir("¡Ahora!");
+        }
+    }
+
+    private void OnTargetStopped(Team team, double ms)
+    {
+        (team == Team.Rojo ? DispRojo : DispAzul).Text = FormatTime(ms);
+        (team == Team.Rojo ? TxtPlacaRojo : TxtPlacaAzul).Text = "¡DETENIDO!";
+    }
+
+    private void OnTargetFinished(TargetTimeResult r)
+    {
+        _musica.Detener();
+        ActualizarMarcadores(_target.PuntosRojo, _target.PuntosAzul);
+
+        string diffs = $"ROJO {Diff(r.RojoMs, r.ObjetivoMs)} · AZUL {Diff(r.AzulMs, r.ObjetivoMs)}\nESPACIO para otra ronda";
+        string msg;
+        if (r.Winner == Team.Rojo) { msg = "¡Ganó el Equipo Rojo!"; SetBanner(msg.ToUpperInvariant(), diffs, ColRojo, 38, 0x88); }
+        else if (r.Winner == Team.Azul) { msg = "¡Ganó el Equipo Azul!"; SetBanner(msg.ToUpperInvariant(), diffs, ColAzul, 38, 0x88); }
+        else { msg = "¡Empate!"; SetBanner("¡EMPATE!", diffs, ColOro, 46, 0x88); }
+
+        _voz.Decir(msg);
+        if (r.Winner != null) PulsarMarcador(r.Winner.Value);
+    }
+
+    private void OnTargetChanged()
+    {
+        DispCentral.Text = FormatTarget();
+    }
+
+    private static string Diff(double ms, double objetivoMs) =>
+        string.Format(CultureInfo.InvariantCulture, "{0:+0.00;-0.00;0.00} s", (ms - objetivoMs) / 1000.0);
+
+    // ------------------------------------------------------------------
+    //  Reloj de pantalla
+    // ------------------------------------------------------------------
+    private void OnTick()
+    {
+        if (_modo == Modo.Reaccion)
+        {
+            if (_engine.State != GameState.RondaActiva) return;
+            double ms = _engine.ElapsedMs;
+            DispCentral.Text = FormatSeconds(ms);
+            ManoReloj.Angle = ms / (_settings.TiempoLimiteSegundos * 1000.0) * 360.0 % 360.0;
+        }
+        else
+        {
+            if (_target.State != GameState.RondaActiva) return;
+            double ms = _target.ElapsedMs;
+            if (!_target.RojoListo) DispRojo.Text = FormatTime(ms);
+            if (!_target.AzulListo) DispAzul.Text = FormatTime(ms);
+            ManoReloj.Angle = ms / _target.TargetMs * 360.0 % 360.0;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    //  Acciones
+    // ------------------------------------------------------------------
+    private bool RondaEnCurso =>
+        _engine.State is GameState.CuentaRegresiva or GameState.EsperandoSenal or GameState.RondaActiva
+        || _target.State is GameState.CuentaRegresiva or GameState.RondaActiva;
+
+    private void IniciarRonda()
+    {
+        if (_modo == Modo.Reaccion) _ = _engine.StartRoundAsync();
+        else _ = _target.StartAsync();
+    }
+
+    private void Presionar(Team t)
+    {
+        VisualBoton(t, true);
+        if (_modo == Modo.Reaccion) _engine.RegisterPress(t);
+        else _target.Stop(t);
+    }
+
+    private void Reiniciar()
+    {
+        _musica.Detener();
+        _engine.ResetGame();
+        _target.ResetGame();
+        ActualizarMarcadores(0, 0);
+        ResetDisplays();
+        MostrarInicio();
+    }
+
+    private void CambiarModo()
+    {
+        if (RondaEnCurso) return;     // no se cambia de modo en mitad de una ronda
+        _modo = _modo == Modo.Reaccion ? Modo.TiempoObjetivo : Modo.Reaccion;
+        Reiniciar();
+        AplicarModo();
+    }
+
+    private void AplicarModo()
+    {
+        bool t = _modo == Modo.TiempoObjetivo;
+        TxtModo.Text = t ? "TIEMPO OBJETIVO" : "TIEMPO DE REACCIÓN";
+        TxtEtiquetaCentral.Text = TxtModo.Text;
+        TxtAyuda.Text = t
+            ? "← → objetivo · ESPACIO iniciar · 1 / 2 detener · TAB modo"
+            : "ESPACIO iniciar · TAB modo · F1 config · F11 pantalla";
+        AplicarConfiguracion();
+        ResetDisplays();
+        MostrarInicio();
+    }
+
+    private void MostrarInicio()
+    {
+        if (_modo == Modo.Reaccion)
+            SetBanner("ESPERA LA SEÑAL Y PRESIONA EL BOTÓN LO MÁS RÁPIDO POSIBLE", "Pulsa ESPACIO para comenzar", ColCian, 28);
+        else
+            SetBanner("AJUSTA EL TIEMPO OBJETIVO CON ← →", "Pulsa ESPACIO para comenzar", ColCian, 30);
+    }
+
+    private void ResetDisplays()
+    {
+        bool t = _modo == Modo.TiempoObjetivo;
+        DispRojo.Text = DispAzul.Text = t ? "00:00.00" : "00.00";
+        DispCentral.Text = t ? FormatTarget() : "00.00";
+        TxtPlacaRojo.Text = TxtPlacaAzul.Text = t ? "DETÉN TU TIEMPO" : "PRESIONA EL BOTÓN";
+        ManoReloj.Angle = 0;
+    }
+
+    private void ActualizarMarcadores(int rojo, int azul)
+    {
+        TxtPuntosRojo.Text = rojo.ToString(CultureInfo.InvariantCulture);
+        TxtPuntosAzul.Text = azul.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private void SetBanner(string titulo, string sub, Color acento, double tamano, byte alfaFondo = 0x55)
+    {
+        TxtMensaje.Text = titulo;
+        TxtMensaje.FontSize = tamano;
+        TxtSub.Text = sub;
+        CajaSenal.BorderBrush = new SolidColorBrush(acento);
+        CajaSenal.Background = new SolidColorBrush(Color.FromArgb(alfaFondo, acento.R, acento.G, acento.B));
+        CajaSenal.Effect = new DropShadowEffect { Color = acento, BlurRadius = 30, ShadowDepth = 0, Opacity = 0.8 };
+    }
+
+    private void PulsarMarcador(Team t)
+    {
+        var st = t == Team.Rojo ? ScaleMarcadorRojo : ScaleMarcadorAzul;
+        var anim = new DoubleAnimation(1.0, 1.25, TimeSpan.FromMilliseconds(160))
+        {
+            AutoReverse = true,
+            RepeatBehavior = new RepeatBehavior(3)
+        };
+        st.BeginAnimation(ScaleTransform.ScaleXProperty, anim);
+        st.BeginAnimation(ScaleTransform.ScaleYProperty, anim);
+    }
+
+    private void VisualBoton(Team t, bool abajo)
+    {
+        var s = t == Team.Rojo ? ScaleBtnRojo : ScaleBtnAzul;
+        s.ScaleX = s.ScaleY = abajo ? 0.93 : 1.0;
+    }
+
+    // ------------------------------------------------------------------
+    //  Formatos
+    // ------------------------------------------------------------------
+    private static string FormatSeconds(double ms) =>
+        Math.Min(ms / 1000.0, 99.99).ToString("00.00", CultureInfo.InvariantCulture);
+
+    /// <summary>MM:SS.cc</summary>
+    private static string FormatTime(double ms)
+    {
+        long cs = (long)(ms / 10.0);
+        long m = Math.Min(cs / 6000, 99);
+        long s = cs / 100 % 60;
+        long c = cs % 100;
+        return string.Format(CultureInfo.InvariantCulture, "{0:00}:{1:00}.{2:00}", m, s, c);
+    }
+
+    private string FormatTarget() =>
+        string.Format(CultureInfo.InvariantCulture, "{0:00}:00", _target.TargetMinutes);
+
+    private static string FormatKey(string k)
+    {
+        if (k.Length == 2 && k[0] == 'D' && char.IsDigit(k[1])) return k[1].ToString();
+        if (k.StartsWith("NumPad", StringComparison.Ordinal) && k.Length > 6) return k.Substring(6);
+        return k.ToUpperInvariant();
+    }
+
+    private static void PonerMarcaDeTecla(TextBlock tb, string tecla)
+    {
+        string t = FormatKey(tecla);
+        tb.Text = t;
+        tb.FontSize = t.Length == 1 ? 120 : t.Length <= 3 ? 70 : 34;
+    }
+
+    private void AplicarConfiguracion()
+    {
+        bool t = _modo == Modo.TiempoObjetivo;
+        TxtTituloJuego.Text = t ? "TIEMPO OBJETIVO" : _settings.TituloDesafio.ToUpperInvariant();
+        TxtTituloInicio.Text = _settings.TituloDesafio.ToUpperInvariant();
+        PonerMarcaDeTecla(TxtKeyRojo, t ? "D1" : _settings.BotonRojo);
+        PonerMarcaDeTecla(TxtKeyAzul, t ? "D2" : _settings.BotonAzul);
+    }
+
+    // ------------------------------------------------------------------
+    //  Teclado
+    // ------------------------------------------------------------------
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+        // Con la configuración abierta no se juega
+        if (PantallaConfig.Visibility == Visibility.Visible)
+        {
+            if (key == Key.Escape) { CerrarConfig(); e.Handled = true; }
             return;
         }
 
-        if (e.Key.ToString() == _settings.BotonRojo) { _engine.RegisterPress(Team.Rojo); AnimarBoton(BtnRojoVisual); }
-        else if (e.Key.ToString() == _settings.BotonAzul) { _engine.RegisterPress(Team.Azul); AnimarBoton(BtnAzulVisual); }
-        else if (e.Key.ToString() == _settings.BotonReinicio) { BtnReiniciar_Click(null, null); }
-        else if (e.Key == Key.Space && PantallaInicio.Visibility == Visibility.Collapsed) { IniciarRonda(); }
+        if (PantallaInicio.Visibility == Visibility.Visible)
+        {
+            if (key == Key.Enter) { PantallaInicio.Visibility = Visibility.Collapsed; e.Handled = true; }
+            else if (key == Key.F11) { if (!e.IsRepeat) ToggleFullscreen(); e.Handled = true; }
+            return;
+        }
+
+        if (key == Key.F11 || (key == Key.Escape && _fullscreen))
+        {
+            if (!e.IsRepeat) ToggleFullscreen();
+            e.Handled = true;
+            return;
+        }
+
+        if (key == Key.F1)
+        {
+            if (!e.IsRepeat) AbrirConfig();
+            e.Handled = true;
+            return;
+        }
+
+        if (key == Key.Tab)
+        {
+            if (!e.IsRepeat) CambiarModo();
+            e.Handled = true;
+            return;
+        }
+
+        // Teclas propias del modo Tiempo Objetivo
+        if (_modo == Modo.TiempoObjetivo)
+        {
+            if (key == Key.Left || key == Key.Right)
+            {
+                _target.AdjustTarget(key == Key.Right ? 1 : -1);   // se permite mantener pulsada
+                e.Handled = true;
+                return;
+            }
+            if (key is Key.D1 or Key.NumPad1) { if (!e.IsRepeat) Presionar(Team.Rojo); e.Handled = true; return; }
+            if (key is Key.D2 or Key.NumPad2) { if (!e.IsRepeat) Presionar(Team.Azul); e.Handled = true; return; }
+        }
+
+        string name = key.ToString();
+
+        if (name == _settings.BotonRojo)
+        {
+            if (!e.IsRepeat) Presionar(Team.Rojo);
+            e.Handled = true;
+        }
+        else if (name == _settings.BotonAzul)
+        {
+            if (!e.IsRepeat) Presionar(Team.Azul);
+            e.Handled = true;
+        }
+        else if (name == _settings.BotonReinicio)
+        {
+            if (!e.IsRepeat) Reiniciar();
+            e.Handled = true;
+        }
+        else if (key == Key.Space)
+        {
+            if (!e.IsRepeat) IniciarRonda();
+            e.Handled = true;
+        }
     }
 
-    private void Window_KeyUp(object sender, KeyEventArgs e)
+    private void Window_PreviewKeyUp(object sender, KeyEventArgs e)
     {
-        BtnRojoVisual.RenderTransform = Transform.Identity;
-        BtnAzulVisual.RenderTransform = Transform.Identity;
+        Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+        string name = key.ToString();
+        if (name == _settings.BotonRojo || key is Key.D1 or Key.NumPad1) VisualBoton(Team.Rojo, false);
+        if (name == _settings.BotonAzul || key is Key.D2 or Key.NumPad2) VisualBoton(Team.Azul, false);
     }
 
-    private void AnimarBoton(System.Windows.Shapes.Ellipse boton)
+    private void ToggleFullscreen()
     {
-        var scale = new ScaleTransform(0.9, 0.9);
-        boton.RenderTransform = scale;
-        boton.RenderTransformOrigin = new Point(0.5, 0.5);
+        if (!_fullscreen)
+        {
+            WindowState = WindowState.Normal;
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            WindowState = WindowState.Maximized;
+        }
+        else
+        {
+            WindowStyle = WindowStyle.SingleBorderWindow;
+            ResizeMode = ResizeMode.CanResize;
+            WindowState = WindowState.Normal;
+        }
+        _fullscreen = !_fullscreen;
     }
 
-    private void BtnConfig_Click(object sender, RoutedEventArgs e) => PantallaConfig.Visibility = Visibility.Visible;
-    private void BtnCerrarConfig_Click(object sender, RoutedEventArgs e) { PantallaConfig.Visibility = Visibility.Collapsed; ActualizarBotonesConfig(); RefreshBindings(); }
-    
-    private void BtnReiniciar_Click(object sender, RoutedEventArgs e)
+    // ------------------------------------------------------------------
+    //  Botones de la pantalla
+    // ------------------------------------------------------------------
+    private void BtnIniciar_Click(object sender, RoutedEventArgs e) => IniciarRonda();
+    private void BtnReiniciar_Click(object sender, RoutedEventArgs e) => Reiniciar();
+    private void BtnConfig_Click(object sender, RoutedEventArgs e) => AbrirConfig();
+    private void BtnCerrarConfig_Click(object sender, RoutedEventArgs e) => CerrarConfig();
+    private void ModoAnterior_Click(object sender, MouseButtonEventArgs e) => CambiarModo();
+    private void ModoSiguiente_Click(object sender, MouseButtonEventArgs e) => CambiarModo();
+
+    private void PantallaInicio_MouseDown(object sender, MouseButtonEventArgs e) =>
+        PantallaInicio.Visibility = Visibility.Collapsed;
+
+    // ------------------------------------------------------------------
+    //  Configuración
+    // ------------------------------------------------------------------
+    private void AbrirConfig()
     {
-        _engine.ResetGame();
-        ActualizarDisplayTiempo();
-        MensajeEstado = "Pulsa ESPACIO para comenzar";
-        RefreshBindings();
+        TxtCfgTitulo.Text = _settings.TituloDesafio;
+        TxtCfgLimite.Text = _settings.TiempoLimiteSegundos.ToString(CultureInfo.InvariantCulture);
+        KeyRojo.Text = _settings.BotonRojo;
+        KeyAzul.Text = _settings.BotonAzul;
+        KeyReinicio.Text = _settings.BotonReinicio;
+        _cfgMusica = _settings.MusicaPath;
+        MostrarMusicaCfg();
+        TxtCfgAviso.Text = "";
+        PantallaConfig.Visibility = Visibility.Visible;
     }
 
-    private void RefreshBindings()
+    private void MostrarMusicaCfg() =>
+        TxtCfgMusica.Text = string.IsNullOrWhiteSpace(_cfgMusica) ? "(ninguna)" : System.IO.Path.GetFileName(_cfgMusica);
+
+    private void CerrarConfig()
     {
-        DataContext = null;
-        DataContext = this;
+        string titulo = TxtCfgTitulo.Text.Trim();
+        if (titulo.Length > 0) _settings.TituloDesafio = titulo;
+
+        if (int.TryParse(TxtCfgLimite.Text, NumberStyles.None, CultureInfo.InvariantCulture, out int lim))
+            _settings.TiempoLimiteSegundos = Math.Clamp(lim, 3, 60);
+
+        _settings.BotonRojo = KeyRojo.Text;
+        _settings.BotonAzul = KeyAzul.Text;
+        _settings.BotonReinicio = KeyReinicio.Text;
+        _settings.MusicaPath = _cfgMusica;
+        _settings.Normalize();
+        _settings.Save();
+
+        AplicarConfiguracion();
+        PantallaConfig.Visibility = Visibility.Collapsed;
+        Focus();
+    }
+
+    private void BtnElegirMusica_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Elegir música de fondo",
+            Filter = "Audio (*.mp3;*.wav;*.wma;*.m4a)|*.mp3;*.wav;*.wma;*.m4a|Todos los archivos|*.*"
+        };
+        if (dlg.ShowDialog(this) == true)
+        {
+            _cfgMusica = dlg.FileName;
+            MostrarMusicaCfg();
+        }
+    }
+
+    private void BtnQuitarMusica_Click(object sender, RoutedEventArgs e)
+    {
+        _cfgMusica = "";
+        MostrarMusicaCfg();
+    }
+
+    private void KeyBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        e.Handled = true;
+        var box = (TextBox)sender;
+        Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+        if (Array.IndexOf(TeclasReservadas, key) >= 0)
+        {
+            TxtCfgAviso.Text = "Esa tecla está reservada (ESPACIO, ENTER, ESC, F1, F11, TAB, ← →). Elige otra.";
+            return;
+        }
+
+        string name = key.ToString();
+        foreach (var otra in new[] { KeyRojo, KeyAzul, KeyReinicio })
+        {
+            if (!ReferenceEquals(otra, box) && otra.Text == name)
+            {
+                TxtCfgAviso.Text = $"La tecla {FormatKey(name)} ya está asignada a otro botón.";
+                return;
+            }
+        }
+
+        box.Text = name;
+        TxtCfgAviso.Text = "";
     }
 }
